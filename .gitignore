@@ -1,0 +1,17 @@
+# Rust target
+/target
+
+# OS files
+Thumbs.db
+[Ee]xpress/
+.DS_Store
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment variables
+.env
+*.local

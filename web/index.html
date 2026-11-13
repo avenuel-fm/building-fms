@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>잠실점 에비뉴엘 시설물 관제</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    /* 라이트 / 다크 CSS 시맨틱 토큰 */
+    :root {
+      --background: #f8fafc;
+      --foreground: #0f172a;
+      --card: #ffffff;
+      --sidebar: #f1f5f9;
+      --border: #e2e8f0;
+      --muted-foreground: #64748b;
+      --cad-paper: #ffffff;
+      --cad-wall: #0f172a;
+      --cad-inner-wall: #334155;
+      --cad-room-line: #64748b;
+      --cad-subline: #cbd5e1;
+      --cad-column: #1e293b;
+      --grid-line: rgba(100, 116, 139, 0.08);
+      --shop-fill: #f8fafc;
+      --shop-border: #94a3b8;
+    }
+    html.dark {
+      --background: #090d16;
+      --foreground: #f8fafc;
+      --card: #111827;
+      --sidebar: #0d131f;
+      --border: #1f2937;
+      --muted-foreground: #9ca3af;
+      --cad-paper: #0c121d;
+      --cad-wall: #94a3b8;
+      --cad-inner-wall: #64748b;
+      --cad-room-line: #475569;
+      --cad-subline: #334155;
+      --cad-column: #cbd5e1;
+      --grid-line: rgba(148, 163, 184, 0.07);
+      --shop-fill: #1e293b;
+      --shop-border: #475569;
+    }
+
+    .cad-grid {
+      background-size: 24px 24px;
+      background-image: 
+        linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+    .pipe-path {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .pipe-path:hover {
+      stroke-width: 5px;
+    }
+    .shop-box {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .shop-box:hover rect {
+      stroke: #0284c7;
+      stroke-width: 2.5px;
+    }
+    .dimmed {
+      opacity: 0.12 !important;
+      filter: grayscale(100%);
+      pointer-events: none;
+    }
+    .active-pipe-flow {
+      stroke-width: 4.5px !important;
+      stroke-dasharray: 8 4;
+      animation: pipe-flow 1.2s linear infinite;
+      filter: drop-shadow(0 0 4px rgba(0,0,0,0.3));
+    }
+    @keyframes pipe-flow {
+      from { stroke-dashoffset: 24; }
+      to { stroke-dashoffset: 0; }
+    }
+    @keyframes subtle-pulse {
+      0% { transform: scale(0.95); opacity: 0.9; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+    .focus-ring {
+      animation: subtle-pulse 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+    }
+    button, input, select {
+      touch-action: manipulation;
+    }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased m-0 p-0 overflow-hidden font-sans select-none text-[13px] transition-colors duration-200">
+  
+  <div class="flex flex-col h-screen w-screen overflow-hidden">
+    
+    <!-- 1. 상단 글로벌 헤더 -->
+    <header class="h-12 bg-[var(--card)] border-b border-[var(--border)] px-4 flex items-center justify-between shrink-0 z-30">
+      
+      <div class="flex items-center gap-3">
+        <button onclick="toggleMobileSidebar()" class="md:hidden p-1.5 rounded hover:bg-[var(--sidebar)] border border-[var(--border)] text-[var(--foreground)]" aria-label="메뉴 열기">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+        </button>
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <h1 class="text-sm font-bold tracking-tight text-[var(--foreground)]">잠실점 에비뉴엘 시설물 관제</h1>
+          <span class="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-mono border border-[var(--border)] text-[var(--muted-foreground)]">Rust Axum 백엔드</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <!-- 테마 토글 버튼 (어두운 테마 / 밝은 테마) -->
+        <button onclick="toggleTheme()" class="px-2.5 py-1 text-xs rounded border border-[var(--border)] hover:bg-[var(--sidebar)] text-[var(--foreground)] flex items-center gap-1.5 font-medium transition-colors">
+          <svg id="themeIcon" class="w-3.5 h-3.5 text-[var(--muted-foreground)]" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/>
+          </svg>
+          <span id="themeToggleText">어두운 테마</span>
+        </button>
+
+        <!-- Google Sheets 실시간 동기화 상태 인디케이터 -->
+        <div class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-[var(--sidebar)] border border-[var(--border)] text-[11px] text-[var(--muted-foreground)]">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>Google Sheets 실시간 연동</span>
+        </div>
+
+        <!-- 로그인 사용자 프로필 및 권한 뱃지 -->
+        <div id="userProfile" class="flex items-center gap-2 pl-2 border-l border-[var(--border)]">
+          <div class="flex items-center gap-1.5">
+            <div id="roleBadge" class="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">
+              관리자
+            </div>
+            <span id="userName" class="text-xs font-medium text-[var(--foreground)]">김시설 관리자</span>
+          </div>
+          
+          <button onclick="openStaffModal()" id="staffManageBtn" class="px-2 py-1 text-xs rounded border border-[var(--border)] hover:bg-[var(--sidebar)] text-[var(--foreground)]">
+            직원/PIN 관리
+          </button>
+          
+          <button onclick="openLoginModal()" class="px-2 py-1 text-xs rounded text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-900">
+            PIN 로그인
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 매장 집중 관제 상태 배너 (매장 클릭 시 노출) -->
+    <div id="shopFocusBanner" class="hidden h-9 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900/60 px-4 flex items-center justify-between z-20 text-xs text-amber-900 dark:text-amber-200">
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>현재 <strong id="focusShopTitle" class="font-bold underline text-amber-950 dark:text-amber-100">샤넬</strong> 매장에 연결된 배관 및 전기 라인만 단독 활성화되어 있습니다. (다른 매장은 비활성화됨)</span>
+      </div>
+      <button onclick="clearShopSelection()" class="px-2.5 py-0.5 bg-amber-200 dark:bg-amber-900 text-amber-950 dark:text-amber-100 rounded font-semibold text-[11px] hover:bg-amber-300">
+        전체 매장/선로 보기 ✕
+      </button>
+    </div>
+
+    <!-- 2. 메인 컨텐츠 영역 -->
+    <div class="flex-1 flex overflow-hidden relative">
+      
+      <!-- 오프캔버스 백드롭 (모바일 전용) -->
+      <div id="mobileBackdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/40 z-30 hidden md:hidden"></div>
+
+      <!-- 2-A. 좌측 사이드바 -->
+      <aside id="sidebar" class="fixed md:static inset-y-0 left-0 w-80 bg-[var(--sidebar)] border-r border-[var(--border)] flex flex-col z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out shrink-0">
+        
+        <!-- 층 선택 탭 -->
+        <div class="p-3 border-b border-[var(--border)] bg-[var(--card)]">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-[var(--muted-foreground)] uppercase">층 선택 (Floor)</span>
+            <span class="text-[11px] font-mono text-[var(--muted-foreground)]" id="currentFloorLabel">2F 명품관</span>
+          </div>
+          <div class="grid grid-cols-4 gap-1.5" id="floorButtonGroup">
+            <button onclick="changeFloor('4F')" class="floor-btn py-1.5 text-xs font-mono rounded border border-[var(--border)] hover:bg-[var(--sidebar)]">4F</button>
+            <button onclick="changeFloor('3F')" class="floor-btn py-1.5 text-xs font-mono rounded border border-[var(--border)] hover:bg-[var(--sidebar)]">3F</button>
+            <button onclick="changeFloor('2F')" class="floor-btn active-floor py-1.5 text-xs font-mono rounded font-bold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">2F</button>
+            <button onclick="changeFloor('1F')" class="floor-btn py-1.5 text-xs font-mono rounded border border-[var(--border)] hover:bg-[var(--sidebar)]">1F</button>
+            <button onclick="changeFloor('B1')" class="floor-btn py-1.5 text-xs font-mono rounded border border-[var(--border)] hover:bg-[var(--sidebar)]">B1</button>
+            <button onclick="changeFloor('B2')" class="floor-btn py-1.5 text-xs font-mono rounded border border-[var(--border)] hover:bg-[var(--sidebar)]">B2</button>
+            <button onclick="changeFloor('B3')" class="floor-btn py-1.5 text-xs font-mono rounded border border-[var(--border)] hover:bg-[var(--sidebar)]">B3</button>
+            <button onclick="changeFloor('ROOF')" class="floor-btn py-1.5 text-xs font-mono rounded border border-[var(--border)] hover:bg-[var(--sidebar)]">ROOF</button>
+          </div>
+        </div>
+
+        <!-- 설비 라디오 필터 -->
+        <div class="p-3 border-b border-[var(--border)] bg-[var(--card)]">
+          <span class="text-xs font-semibold text-[var(--muted-foreground)] block mb-2">설비 분류 필터</span>
+          <div class="space-y-1.5 text-xs">
+            <label class="flex items-center gap-2 p-1.5 rounded hover:bg-[var(--sidebar)] cursor-pointer">
+              <input type="radio" name="facilityCategory" value="ALL" checked onchange="handleCategoryFilter('ALL')" class="text-slate-900 focus:ring-0">
+              <span class="font-medium">전체 설비 표시</span>
+            </label>
+            <label class="flex items-center gap-2 p-1.5 rounded hover:bg-[var(--sidebar)] cursor-pointer">
+              <input type="radio" name="facilityCategory" value="FIRE" onchange="handleCategoryFilter('FIRE')" class="text-red-600 focus:ring-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-600"></span>
+              <span class="font-medium text-red-600 dark:text-red-400">소방 설비 (소화전, 스프링클러)</span>
+            </label>
+            <label class="flex items-center gap-2 p-1.5 rounded hover:bg-[var(--sidebar)] cursor-pointer">
+              <input type="radio" name="facilityCategory" value="PLUMBING" onchange="handleCategoryFilter('PLUMBING')" class="text-blue-600 focus:ring-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+              <span class="font-medium text-blue-600 dark:text-blue-400">위생 / 급수 / 배수 배관</span>
+            </label>
+            <label class="flex items-center gap-2 p-1.5 rounded hover:bg-[var(--sidebar)] cursor-pointer">
+              <input type="radio" name="facilityCategory" value="HVAC" onchange="handleCategoryFilter('HVAC')" class="text-emerald-600 focus:ring-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+              <span class="font-medium text-emerald-600 dark:text-emerald-400">공조 / 환기 / 덕트 (HVAC)</span>
+            </label>
+            <label class="flex items-center gap-2 p-1.5 rounded hover:bg-[var(--sidebar)] cursor-pointer">
+              <input type="radio" name="facilityCategory" value="ELEC" onchange="handleCategoryFilter('ELEC')" class="text-amber-500 focus:ring-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+              <span class="font-medium text-amber-600 dark:text-amber-400">전기 / 분전반 / 조명 선로</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 사이드바 탭 (입점 매장 목록 / 배관 목록 / 시설물 목록) -->
+        <div class="flex border-b border-[var(--border)] bg-[var(--card)] text-xs">
+          <button onclick="switchSidebarTab('shops')" id="tabShopsBtn" class="flex-1 py-2 font-bold border-b-2 border-slate-900 dark:border-slate-100 text-[var(--foreground)]">입점 매장</button>
+          <button onclick="switchSidebarTab('pipes')" id="tabPipesBtn" class="flex-1 py-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]">연결 배관/선로</button>
+          <button onclick="switchSidebarTab('facilities')" id="tabFacBtn" class="flex-1 py-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]">시설물</button>
+        </div>
+
+        <!-- 탭 1: 입점 매장 목록 -->
+        <div id="shopsListContainer" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1.5"></div>
+
+        <!-- 탭 2: 배관 및 전기 라인 목록 -->
+        <div id="pipesListContainer" class="hidden flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1.5"></div>
+
+        <!-- 탭 3: 시설물 목록 -->
+        <div id="facilityListContainer" class="hidden flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1.5"></div>
+
+        <!-- 관리자 전용 등록 도구 모음 -->
+        <div id="adminActionSection" class="p-3 border-t border-[var(--border)] bg-[var(--card)] space-y-2">
+          <div class="text-[11px] font-semibold text-[var(--muted-foreground)]">관리자 도면 편집 도구</div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button onclick="startDrawingPipe()" class="py-1.5 px-2 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-semibold text-xs text-center hover:opacity-90">
+              배관/전기선 그리기
+            </button>
+            <button onclick="alert('시설물 핀 등록 모드: 도면의 원하는 위치를 클릭하세요.')" class="py-1.5 px-2 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center">
+              시설물 핀 등록
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 2-B. 중앙 CAD 도면 관제 캔버스 -->
+      <main class="flex-1 flex flex-col bg-[var(--cad-paper)] relative overflow-hidden transition-colors duration-200">
+        
+        <!-- 캔버스 상단 툴바 -->
+        <div class="h-10 border-b border-[var(--border)] bg-[var(--card)]/90 backdrop-blur px-3 flex items-center justify-between text-xs z-20">
+          <div class="flex items-center gap-3">
+            <span class="font-bold text-[var(--foreground)]" id="cadStatusText">2F 평면도 관제 화면</span>
+            <span class="text-[11px] text-[var(--muted-foreground)] hidden sm:inline">도면의 매장 박스를 누르면 해당 매장에 연결된 배관 및 전기선로만 하이라이트됩니다.</span>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button onclick="resetZoom()" class="px-2 py-1 rounded border border-[var(--border)] hover:bg-[var(--sidebar)] text-[11px]">
+              화면 맞춤
+            </button>
+          </div>
+        </div>
+
+        <!-- CAD 뷰포트 -->
+        <div id="viewport" class="flex-1 relative overflow-hidden cad-grid">
+          
+          <svg id="cadSvg" class="w-full h-full select-none" viewBox="0 0 1000 650">
+            <g id="sceneGroup" transform="translate(40, 30) scale(0.92)">
+              
+              <!-- 건물 외벽 및 구조체 -->
+              <rect x="20" y="20" width="900" height="560" fill="none" stroke="var(--cad-wall)" stroke-width="4"/>
+              
+              <!-- 기둥(Column) -->
+              <g id="columnsGroup">
+                <rect x="20" y="20" width="16" height="16" fill="var(--cad-column)"/>
+                <rect x="300" y="20" width="16" height="16" fill="var(--cad-column)"/>
+                <rect x="620" y="20" width="16" height="16" fill="var(--cad-column)"/>
+                <rect x="904" y="20" width="16" height="16" fill="var(--cad-column)"/>
+                <rect x="20" y="290" width="16" height="16" fill="var(--cad-column)"/>
+                <rect x="300" y="290" width="16" height="16" fill="var(--cad-column)"/>
+                <rect x="620" y="290" width="16" height="16" fill="var(--cad-column)"/>
+                <rect x="904" y="290" width="16" height="16" fill="var(--cad-column)"/>
+                <rect x="20" y="564" width="16" height="16" fill="var(--cad-column)"/>
+                <rect x="300" y="564" width="16" height="16" fill="var(--cad-column)"/>
+                <rect x="620" y="564" width="16" height="16" fill="var(--cad-column)"/>
+                <rect x="904" y="564" width="16" height="16" fill="var(--cad-column)"/>
+              </g>
+
+              <!-- 복도 및 코어 구역 -->
+              <rect x="380" y="20" width="180" height="130" fill="var(--sidebar)" stroke="var(--cad-wall)" stroke-width="2"/>
+              <text x="470" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--muted-foreground)">EV / E/S 중앙 코어</text>
+              <rect x="380" y="450" width="180" height="130" fill="var(--sidebar)" stroke="var(--cad-wall)" stroke-width="2"/>
+              <text x="470" y="520" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--muted-foreground)">EPS / TPS / 방재실</text>
+
+              <!-- 잠실점 에비뉴엘 2F 매장 구역 레이어 -->
+              <g id="shopsLayer">
+                <!-- 샤넬 -->
+                <g class="shop-box" data-shop="샤넬" onclick="selectStore('샤넬')">
+                  <rect id="rect-샤넬" x="40" y="40" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
+                  <text x="115" y="145" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">샤넬</text>
+                  <text x="115" y="170" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">CHANEL</text>
+                </g>
+
+                <!-- 에르메스 -->
+                <g class="shop-box" data-shop="에르메스" onclick="selectStore('에르메스')">
+                  <rect id="rect-에르메스" x="210" y="40" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
+                  <text x="285" y="145" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">에르메스</text>
+                  <text x="285" y="170" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">HERMES</text>
+                </g>
+
+                <!-- 루이비통 -->
+                <g class="shop-box" data-shop="루이비통" onclick="selectStore('루이비통')">
+                  <rect id="rect-루이비통" x="580" y="40" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
+                  <text x="655" y="145" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">루이비통</text>
+                  <text x="655" y="170" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">LOUIS VUITTON</text>
+                </g>
+
+                <!-- 디올 -->
+                <g class="shop-box" data-shop="디올" onclick="selectStore('디올')">
+                  <rect id="rect-디올" x="750" y="40" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
+                  <text x="825" y="145" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">디올</text>
+                  <text x="825" y="170" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">DIOR</text>
+                </g>
+
+                <!-- 구찌 -->
+                <g class="shop-box" data-shop="구찌" onclick="selectStore('구찌')">
+                  <rect id="rect-구찌" x="40" y="330" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
+                  <text x="115" y="435" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">구찌</text>
+                  <text x="115" y="460" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">GUCCI</text>
+                </g>
+
+                <!-- 롤렉스 -->
+                <g class="shop-box" data-shop="롤렉스" onclick="selectStore('롤렉스')">
+                  <rect id="rect-롤렉스" x="210" y="330" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
+                  <text x="285" y="435" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">롤렉스</text>
+                  <text x="285" y="460" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">ROLEX</text>
+                </g>
+
+                <!-- 까르띠에 -->
+                <g class="shop-box" data-shop="까르띠에" onclick="selectStore('까르띠에')">
+                  <rect id="rect-까르띠에" x="580" y="330" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
+                  <text x="655" y="435" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">까르띠에</text>
+                  <text x="655" y="460" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">CARTIER</text>
+                </g>
+
+                <!-- 티파니 -->
+                <g class="shop-box" data-shop="티파니" onclick="selectStore('티파니')">
+                  <rect id="rect-티파니" x="750" y="330" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
+                  <text x="825" y="435" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">티파니</text>
+                  <text x="825" y="460" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">TIFFANY & CO.</text>
+                </g>
+              </g>
+
+              <!-- 메인 복도 공급 라인 -->
+              <g id="mainCorridorPipes">
+                <path d="M 470 450 L 470 300 L 40 300" stroke="#0284c7" stroke-width="3" fill="none" opacity="0.4" stroke-dasharray="6 3"/>
+                <path d="M 470 300 L 900 300" stroke="#0284c7" stroke-width="3" fill="none" opacity="0.4" stroke-dasharray="6 3"/>
+                <path d="M 460 450 L 460 290 L 40 290" stroke="#d97706" stroke-width="3" fill="none" opacity="0.4" stroke-dasharray="6 3"/>
+                <path d="M 460 290 L 900 290" stroke="#d97706" stroke-width="3" fill="none" opacity="0.4" stroke-dasharray="6 3"/>
+              </g>
+
+              <!-- 동적 배관 및 전기 라인 -->
+              <g id="pipePathLayer"></g>
+
+              <!-- 동적 시설물 핀 -->
+              <g id="pinLayer"></g>
+
+              <!-- 임시 드로잉 라인 -->
+              <polyline id="tempPolyline" points="" stroke="#0284c7" stroke-width="3.5" fill="none" stroke-dasharray="5 3" class="hidden"/>
+            </g>
+          </svg>
+        </div>
+
+        <!-- 하단 범례 -->
+        <footer class="h-8 border-t border-[var(--border)] bg-[var(--card)] px-4 flex items-center justify-between text-xs text-[var(--muted-foreground)]">
+          <div class="flex items-center gap-4">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-1 bg-red-600 rounded"></span>소방(SP/옥내)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-1 bg-blue-600 rounded"></span>급수/배수</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-1 bg-emerald-600 rounded"></span>공조(HVAC)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-1 bg-amber-500 rounded"></span>전기(분전반)</span>
+          </div>
+          <div class="font-mono text-[11px]" id="selectedFacilityDetails">잠실점 에비뉴엘 2F 시스템 정상 가동 중</div>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <!-- 배관 그리기 등록 모달 -->
+  <div id="pipeRegisterModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg w-full max-w-sm p-4 space-y-3 shadow-lg">
+      <h3 class="font-bold text-sm text-[var(--foreground)]">새 배관/전기 라인 제원 등록</h3>
+      <div class="space-y-2 text-xs">
+        <div>
+          <label class="block text-[var(--muted-foreground)] mb-1">연결 매장 (인입 구역)</label>
+          <select id="modalPipeShop" class="w-full px-2.5 py-1.5 rounded border border-[var(--border)] bg-[var(--background)] font-semibold">
+            <option value="샤넬">샤넬 (CHANEL)</option>
+            <option value="에르메스">에르메스 (HERMES)</option>
+            <option value="루이비통">루이비통 (LOUIS VUITTON)</option>
+            <option value="디올">디올 (DIOR)</option>
+            <option value="구찌">구찌 (GUCCI)</option>
+            <option value="롤렉스">롤렉스 (ROLEX)</option>
+            <option value="까르띠에">까르띠에 (CARTIER)</option>
+            <option value="티파니">티파니 (TIFFANY & CO.)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[var(--muted-foreground)] mb-1">라인 명칭</label>
+          <input type="text" id="modalPipeName" class="w-full px-2.5 py-1.5 rounded border border-[var(--border)] bg-[var(--background)]" placeholder="예: 샤넬 인입 급수관 50A">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">계통 구분</label>
+            <select id="modalPipeKind" class="w-full px-2.5 py-1.5 rounded border border-[var(--border)] bg-[var(--background)]">
+              <option value="PLUMBING">위생/급수 배관</option>
+              <option value="FIRE">소방 배관</option>
+              <option value="ELEC">전기/간선 라인</option>
+              <option value="HVAC">공조 덕트</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[var(--muted-foreground)] mb-1">관경 / 규격</label>
+            <input type="text" id="modalPipeSpec" class="w-full px-2.5 py-1.5 rounded border border-[var(--border)] bg-[var(--background)]" value="50A">
+          </div>
+        </div>
+        <div>
+          <label class="block text-[var(--muted-foreground)] mb-1">도면 측정 길이</label>
+          <input type="text" id="modalPipeLength" readonly class="w-full px-2.5 py-1.5 rounded border border-[var(--border)] bg-[var(--sidebar)] font-mono">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
+        <button onclick="cancelPipeDraw()" class="px-3 py-1.5 text-xs rounded border border-[var(--border)] hover:bg-[var(--sidebar)]">취소</button>
+        <button onclick="saveDrawnPipe()" class="px-3 py-1.5 text-xs rounded bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-bold">저장 및 API 전송</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4자리 PIN 로그인 모달 -->
+  <div id="loginModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg w-full max-w-xs p-5 space-y-4 shadow-xl">
+      <div class="text-center">
+        <h3 class="font-bold text-base text-[var(--foreground)]">시스템 인증</h3>
+        <p class="text-xs text-[var(--muted-foreground)] mt-1">4자리 PIN 번호를 입력하세요<br>(관리자: 1234 / 직원: 5678)</p>
+      </div>
+      <div class="flex justify-center gap-2">
+        <input type="password" id="pinInput" maxlength="4" class="w-36 text-center tracking-[0.5em] text-xl font-bold py-2 rounded border border-[var(--border)] bg-[var(--background)]" placeholder="••••" autofocus>
+      </div>
+      <div class="grid grid-cols-3 gap-1.5">
+        <button onclick="appendPin('1')" class="py-2.5 rounded border border-[var(--border)] font-bold text-sm hover:bg-[var(--sidebar)]">1</button>
+        <button onclick="appendPin('2')" class="py-2.5 rounded border border-[var(--border)] font-bold text-sm hover:bg-[var(--sidebar)]">2</button>
+        <button onclick="appendPin('3')" class="py-2.5 rounded border border-[var(--border)] font-bold text-sm hover:bg-[var(--sidebar)]">3</button>
+        <button onclick="appendPin('4')" class="py-2.5 rounded border border-[var(--border)] font-bold text-sm hover:bg-[var(--sidebar)]">4</button>
+        <button onclick="appendPin('5')" class="py-2.5 rounded border border-[var(--border)] font-bold text-sm hover:bg-[var(--sidebar)]">5</button>
+        <button onclick="appendPin('6')" class="py-2.5 rounded border border-[var(--border)] font-bold text-sm hover:bg-[var(--sidebar)]">6</button>
+        <button onclick="appendPin('7')" class="py-2.5 rounded border border-[var(--border)] font-bold text-sm hover:bg-[var(--sidebar)]">7</button>
+        <button onclick="appendPin('8')" class="py-2.5 rounded border border-[var(--border)] font-bold text-sm hover:bg-[var(--sidebar)]">8</button>
+        <button onclick="appendPin('9')" class="py-2.5 rounded border border-[var(--border)] font-bold text-sm hover:bg-[var(--sidebar)]">9</button>
+        <button onclick="clearPin()" class="py-2.5 rounded border border-[var(--border)] text-xs text-rose-600 hover:bg-[var(--sidebar)]">지움</button>
+        <button onclick="appendPin('0')" class="py-2.5 rounded border border-[var(--border)] font-bold text-sm hover:bg-[var(--sidebar)]">0</button>
+        <button onclick="submitPinLogin()" class="py-2.5 rounded bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-bold text-xs">확인</button>
+      </div>
+      <button onclick="closeLoginModal()" class="w-full py-1 text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]">취소</button>
+    </div>
+  </div>
+
+  <script>
+    let currentTheme = 'light';
+    let currentUser = { role: 'admin', name: '김시설 관리자' };
+    let currentFloor = '2F';
+    let selectedStore = null;
+
+    let shopsData = [];
+    let pipesData = [];
+    let facilitiesData = [];
+
+    // 서버 API 호출 또는 기본 폴백 로드
+    async function loadData() {
+      try {
+        const [shopsRes, pipesRes, facRes] = await Promise.all([
+          fetch('/api/shops'),
+          fetch('/api/pipes'),
+          fetch('/api/facilities')
+        ]);
+        if (shopsRes.ok) shopsData = await shopsRes.json();
+        if (pipesRes.ok) pipesData = await pipesRes.json();
+        if (facRes.ok) facilitiesData = await facRes.json();
+      } catch (err) {
+        console.warn('API 미응답, 로컬 캐시 데이터로 가동합니다.', err);
+        loadFallbackData();
+      }
+      renderAll();
+    }
+
+    function loadFallbackData() {
+      shopsData = [
+        { name: '샤넬', code: 'CHANEL', desc: '급수(50A), 전력(75kW), 소방SP', pipe_count: 3 },
+        { name: '에르메스', code: 'HERMES', desc: '급수(65A), 간선전력(50kW)', pipe_count: 2 },
+        { name: '루이비통', code: 'LOUIS VUITTON', desc: '급수(50A), 특고압(80kW)', pipe_count: 2 },
+        { name: '디올', code: 'DIOR', desc: '급수(40A), 조명간선(45kW)', pipe_count: 2 },
+        { name: '구찌', code: 'GUCCI', desc: '급수(50A), 전력선(60kW)', pipe_count: 2 },
+        { name: '롤렉스', code: 'ROLEX', desc: '공조덕트, 분전반', pipe_count: 1 },
+        { name: '까르띠에', code: 'CARTIER', desc: '급수, 전력 배선 대기', pipe_count: 0 },
+        { name: '티파니', code: 'TIFFANY & CO.', desc: '조명선로 인입 완료', pipe_count: 0 }
+      ];
+      pipesData = [
+        { id: 'P-201', name: '샤넬 인입 전용 급수관 50A', shop: '샤넬', category: 'PLUMBING', spec: '50A 스테인리스', length: '18.4m', points: '470,300 115,300 115,270', color: '#0284c7' },
+        { id: 'P-202', name: '샤넬 메인 3상 수전간선 75kW', shop: '샤넬', category: 'ELEC', spec: 'F-CV 35sq', length: '21.0m', points: '460,290 125,290 125,270', color: '#d97706' },
+        { id: 'P-203', name: '샤넬 습식 스프링클러 배관', shop: '샤넬', category: 'FIRE', spec: '80A 배관', length: '15.6m', points: '470,310 105,310 105,270', color: '#dc2626' },
+        { id: 'P-204', name: '에르메스 급수/오수 메인 배관', shop: '에르메스', category: 'PLUMBING', spec: '65A 스테인리스', length: '23.8m', points: '470,300 285,300 285,270', color: '#0284c7' },
+        { id: 'P-205', name: '에르메스 전력 간선 분전선', shop: '에르메스', category: 'ELEC', spec: 'F-CV 25sq', length: '19.2m', points: '460,290 295,290 295,270', color: '#d97706' },
+        { id: 'P-206', name: '루이비통 전용 급수 배관 50A', shop: '루이비통', category: 'PLUMBING', spec: '50A 스테인리스', length: '24.5m', points: '470,300 655,300 655,270', color: '#0284c7' },
+        { id: 'P-207', name: '루이비통 대용량 수전설비 80kW', shop: '루이비통', category: 'ELEC', spec: 'F-CV 50sq', length: '26.8m', points: '460,290 645,290 645,270', color: '#d97706' },
+        { id: 'P-208', name: '디올 인입 급수관 40A', shop: '디올', category: 'PLUMBING', spec: '40A 스테인리스', length: '31.2m', points: '470,300 825,300 825,270', color: '#0284c7' },
+        { id: 'P-209', name: '디올 조명 및 전력 간선 45kW', shop: '디올', category: 'ELEC', spec: 'F-CV 25sq', length: '33.0m', points: '460,290 835,290 835,270', color: '#d97706' },
+        { id: 'P-210', name: '구찌 인입 급수 라인 50A', shop: '구찌', category: 'PLUMBING', spec: '50A 배관', length: '18.1m', points: '470,300 115,300 115,330', color: '#0284c7' },
+        { id: 'P-211', name: '구찌 메인 전력선 60kW', shop: '구찌', category: 'ELEC', spec: 'F-CV 35sq', length: '19.7m', points: '460,290 125,290 125,330', color: '#d97706' },
+        { id: 'P-212', name: '롤렉스 공조 급기 덕트 300x200', shop: '롤렉스', category: 'HVAC', spec: '아연도강판 덕트', length: '22.4m', points: '470,320 285,320 285,330', color: '#059669' }
+      ];
+      facilitiesData = [
+        { id: 'F-101', name: '샤넬 옥내소화전 2-1', shop: '샤넬', category: 'FIRE', floor: '2F', x: 50, y: 50 },
+        { id: 'F-102', name: '샤넬 조명 분전반 LP-2A', shop: '샤넬', category: 'ELEC', floor: '2F', x: 170, y: 50 },
+        { id: 'F-103', name: '에르메스 소방 밸브 스테이션', shop: '에르메스', category: 'FIRE', floor: '2F', x: 220, y: 50 },
+        { id: 'F-104', name: '루이비통 메인 배전반 MP-2B', shop: '루이비통', category: 'ELEC', floor: '2F', x: 710, y: 50 },
+        { id: 'F-105', name: '디올 FCU 공조기 2대', shop: '디올', category: 'HVAC', floor: '2F', x: 880, y: 50 }
+      ];
+    }
+
+    function renderAll() {
+      renderShopsList();
+      renderPipes();
+      renderFacilities();
+      renderPipesList();
+    }
+
+    // 테마 토글
+    function toggleTheme() {
+      const html = document.documentElement;
+      if (currentTheme === 'light') {
+        html.classList.remove('light');
+        html.classList.add('dark');
+        currentTheme = 'dark';
+        document.getElementById('themeToggleText').innerText = '밝은 테마';
+      } else {
+        html.classList.remove('dark');
+        html.classList.add('light');
+        currentTheme = 'light';
+        document.getElementById('themeToggleText').innerText = '어두운 테마';
+      }
+    }
+
+    // 매장 클릭 시 단독 활성화 & 타 매장 비활성화 (Dim)
+    function selectStore(shopName) {
+      if (selectedStore === shopName) {
+        clearShopSelection();
+        return;
+      }
+      selectedStore = shopName;
+
+      const banner = document.getElementById('shopFocusBanner');
+      banner.classList.remove('hidden');
+      document.getElementById('focusShopTitle').innerText = shopName;
+      document.getElementById('cadStatusText').innerText = shopName + ' 매장 연결 선로 집중 관제 모드';
+
+      document.querySelectorAll('#shopsLayer > g').forEach(g => {
+        const s = g.getAttribute('data-shop');
+        const rect = g.querySelector('rect');
+        if (s === shopName) {
+          g.classList.remove('dimmed');
+          rect.setAttribute('stroke', '#0284c7');
+          rect.setAttribute('stroke-width', '3');
+          rect.setAttribute('fill', currentTheme === 'light' ? '#e0f2fe' : '#0369a1');
+        } else {
+          g.classList.add('dimmed');
+          rect.setAttribute('stroke', 'var(--shop-border)');
+          rect.setAttribute('stroke-width', '2');
+          rect.setAttribute('fill', 'var(--shop-fill)');
+        }
+      });
+
+      document.querySelectorAll('.pipe-path').forEach(p => {
+        const pShop = p.getAttribute('data-shop');
+        if (pShop === shopName) {
+          p.classList.remove('dimmed');
+          p.classList.add('active-pipe-flow');
+        } else {
+          p.classList.remove('active-pipe-flow');
+          p.classList.add('dimmed');
+        }
+      });
+
+      document.querySelectorAll('.fac-pin').forEach(pin => {
+        const pinShop = pin.getAttribute('data-shop');
+        if (pinShop === shopName) {
+          pin.classList.remove('dimmed');
+        } else {
+          pin.classList.add('dimmed');
+        }
+      });
+
+      document.querySelectorAll('.shop-list-item').forEach(el => {
+        if (el.getAttribute('data-shop') === shopName) {
+          el.classList.add('border-blue-500', 'bg-blue-50/60', 'dark:bg-blue-950/40');
+        } else {
+          el.classList.remove('border-blue-500', 'bg-blue-50/60', 'dark:bg-blue-950/40');
+        }
+      });
+    }
+
+    function clearShopSelection() {
+      selectedStore = null;
+      document.getElementById('shopFocusBanner').classList.add('hidden');
+      document.getElementById('cadStatusText').innerText = currentFloor + ' 평면도 관제 화면';
+
+      document.querySelectorAll('.dimmed').forEach(el => el.classList.remove('dimmed'));
+      document.querySelectorAll('.active-pipe-flow').forEach(el => el.classList.remove('active-pipe-flow'));
+
+      document.querySelectorAll('#shopsLayer > g rect').forEach(rect => {
+        rect.setAttribute('stroke', 'var(--shop-border)');
+        rect.setAttribute('stroke-width', '2');
+        rect.setAttribute('fill', 'var(--shop-fill)');
+      });
+
+      document.querySelectorAll('.shop-list-item').forEach(el => {
+        el.classList.remove('border-blue-500', 'bg-blue-50/60', 'dark:bg-blue-950/40');
+      });
+    }
+
+    function renderPipes() {
+      const layer = document.getElementById('pipePathLayer');
+      layer.innerHTML = pipesData.map(p => `
+        <polyline id="${p.id}" class="pipe-path" data-shop="${p.shop}" data-category="${p.category}" points="${p.points}" stroke="${p.color}" stroke-width="3" fill="none" onclick="selectStore('${p.shop}')"/>
+      `).join('');
+    }
+
+    function renderFacilities() {
+      const layer = document.getElementById('pinLayer');
+      layer.innerHTML = facilitiesData.map(f => {
+        const color = f.category === 'FIRE' ? '#dc2626' : f.category === 'ELEC' ? '#d97706' : '#059669';
+        return `
+          <g class="fac-pin" data-shop="${f.shop}" data-category="${f.category}" transform="translate(${f.x}, ${f.y})" onclick="selectStore('${f.shop}')">
+            <circle r="7" fill="${color}" stroke="#ffffff" stroke-width="1.5"/>
+            <text y="3.5" text-anchor="middle" font-size="7" fill="#ffffff" font-weight="bold">${f.category[0]}</text>
+          </g>
+        `;
+      }).join('');
+    }
+
+    function renderShopsList() {
+      const c = document.getElementById('shopsListContainer');
+      c.innerHTML = shopsData.map(s => `
+        <div onclick="selectStore('${s.name}')" data-shop="${s.name}" class="shop-list-item p-2.5 rounded border border-[var(--border)] bg-[var(--card)] hover:border-slate-400 cursor-pointer flex items-center justify-between transition-colors">
+          <div>
+            <div class="font-bold text-xs text-[var(--foreground)]">${s.name} <span class="text-[10px] text-[var(--muted-foreground)] font-mono font-normal">(${s.code})</span></div>
+            <div class="text-[11px] text-[var(--muted-foreground)]">${s.desc || s.description}</div>
+          </div>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[var(--sidebar)] border border-[var(--border)]">${s.pipe_count || s.pipeCount || 0}개 선로</span>
+        </div>
+      `).join('');
+    }
+
+    function renderPipesList() {
+      const c = document.getElementById('pipesListContainer');
+      c.innerHTML = pipesData.map(p => `
+        <div onclick="selectStore('${p.shop}')" class="p-2.5 rounded border border-[var(--border)] bg-[var(--card)] hover:border-slate-400 cursor-pointer flex items-center justify-between text-xs">
+          <div>
+            <div class="font-bold text-[var(--foreground)]">${p.name}</div>
+            <div class="text-[11px] text-[var(--muted-foreground)]">인입: <span class="font-bold underline">${p.shop}</span> | 규격: ${p.spec} (${p.length})</div>
+          </div>
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold" style="background-color: ${p.color}20; color: ${p.color};">${p.category}</span>
+        </div>
+      `).join('');
+    }
+
+    function switchSidebarTab(tab) {
+      const sContainer = document.getElementById('shopsListContainer');
+      const pContainer = document.getElementById('pipesListContainer');
+      const fContainer = document.getElementById('facilityListContainer');
+      const sBtn = document.getElementById('tabShopsBtn');
+      const pBtn = document.getElementById('tabPipesBtn');
+      const fBtn = document.getElementById('tabFacBtn');
+
+      [sContainer, pContainer, fContainer].forEach(el => el.classList.add('hidden'));
+      [sBtn, pBtn, fBtn].forEach(b => b.className = 'flex-1 py-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]');
+
+      if (tab === 'shops') {
+        sContainer.classList.remove('hidden');
+        sBtn.className = 'flex-1 py-2 font-bold border-b-2 border-slate-900 dark:border-slate-100 text-[var(--foreground)]';
+      } else if (tab === 'pipes') {
+        pContainer.classList.remove('hidden');
+        pBtn.className = 'flex-1 py-2 font-bold border-b-2 border-slate-900 dark:border-slate-100 text-[var(--foreground)]';
+        renderPipesList();
+      } else {
+        fContainer.classList.remove('hidden');
+        fBtn.className = 'flex-1 py-2 font-bold border-b-2 border-slate-900 dark:border-slate-100 text-[var(--foreground)]';
+      }
+    }
+
+    function changeFloor(f) {
+      currentFloor = f;
+      document.getElementById('currentFloorLabel').innerText = f === '2F' ? '2F 명품관' : f;
+      document.querySelectorAll('.floor-btn').forEach(b => {
+        b.className = 'floor-btn py-1.5 text-xs font-mono rounded border border-[var(--border)] hover:bg-[var(--sidebar)]';
+      });
+      event.target.className = 'floor-btn active-floor py-1.5 text-xs font-mono rounded font-bold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900';
+      clearShopSelection();
+    }
+
+    function handleCategoryFilter(cat) {
+      document.querySelectorAll('.pipe-path').forEach(p => {
+        const c = p.getAttribute('data-category');
+        p.style.display = (cat === 'ALL' || c === cat) ? 'block' : 'none';
+      });
+      document.querySelectorAll('.fac-pin').forEach(pin => {
+        const c = pin.getAttribute('data-category');
+        pin.style.display = (cat === 'ALL' || c === cat) ? 'block' : 'none';
+      });
+    }
+
+    // 4자리 PIN 로그인 모달 및 API
+    function openLoginModal() {
+      document.getElementById('loginModal').classList.remove('hidden');
+      document.getElementById('pinInput').value = '';
+    }
+    function closeLoginModal() {
+      document.getElementById('loginModal').classList.add('hidden');
+    }
+    function appendPin(num) {
+      const pin = document.getElementById('pinInput');
+      if (pin.value.length < 4) pin.value += num;
+    }
+    function clearPin() {
+      document.getElementById('pinInput').value = '';
+    }
+    async function submitPinLogin() {
+      const pin = document.getElementById('pinInput').value;
+      if (pin.length !== 4) {
+        alert('4자리 PIN 번호를 입력하세요.');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          currentUser = { role: data.role, name: data.name };
+          updateUserUI();
+          closeLoginModal();
+          alert(data.message);
+        } else {
+          alert(data.message || '인증 실패');
+        }
+      } catch (e) {
+        // 오프라인/개발 모드 폴백
+        if (pin === '1234') {
+          currentUser = { role: 'admin', name: '김시설 관리자' };
+          updateUserUI();
+          closeLoginModal();
+          alert('관리자 로그인 성공 (1234)');
+        } else if (pin === '5678') {
+          currentUser = { role: 'viewer', name: '이순찰 직원' };
+          updateUserUI();
+          closeLoginModal();
+          alert('직원(뷰어) 로그인 성공 (5678)');
+        } else {
+          alert('등록되지 않은 PIN 번호입니다.');
+        }
+      }
+    }
+
+    function updateUserUI() {
+      const isAdm = currentUser.role === 'admin';
+      document.getElementById('userName').innerText = currentUser.name;
+      const badge = document.getElementById('roleBadge');
+      badge.innerText = isAdm ? '관리자' : '직원(뷰어)';
+      badge.className = isAdm 
+        ? 'px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+        : 'px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border border-amber-300';
+      
+      const adminSec = document.getElementById('adminActionSection');
+      const staffBtn = document.getElementById('staffManageBtn');
+      if (isAdm) {
+        adminSec.classList.remove('hidden');
+        staffBtn.classList.remove('hidden');
+      } else {
+        adminSec.classList.add('hidden');
+        staffBtn.classList.add('hidden');
+      }
+    }
+
+    // 배관 그리기 모드
+    let isDrawing = false;
+    let drawnPoints = [];
+    function startDrawingPipe() {
+      if (currentUser.role !== 'admin') {
+        alert('배관 그리기는 관리자 권한만 가능합니다.');
+        return;
+      }
+      isDrawing = true;
+      drawnPoints = [];
+      alert('도면에서 시작점과 꺾임점, 끝점을 클릭하세요.');
+    }
+
+    const svg = document.getElementById('cadSvg');
+    svg.addEventListener('click', (e) => {
+      if (!isDrawing) return;
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const svgP = pt.matrixTransform(document.getElementById('sceneGroup').getScreenCTM().inverse());
+      drawnPoints.push(`${Math.round(svgP.x)},${Math.round(svgP.y)}`);
+      
+      const poly = document.getElementById('tempPolyline');
+      poly.classList.remove('hidden');
+      poly.setAttribute('points', drawnPoints.join(' '));
+
+      if (drawnPoints.length >= 3) {
+        isDrawing = false;
+        poly.classList.add('hidden');
+        document.getElementById('modalPipeLength').value = (drawnPoints.length * 7.5).toFixed(1) + ' m';
+        document.getElementById('pipeRegisterModal').classList.remove('hidden');
+      }
+    });
+
+    function cancelPipeDraw() {
+      document.getElementById('pipeRegisterModal').classList.add('hidden');
+      drawnPoints = [];
+    }
+
+    async function saveDrawnPipe() {
+      const shop = document.getElementById('modalPipeShop').value;
+      const name = document.getElementById('modalPipeName').value || `${shop} 신규 배관`;
+      const kind = document.getElementById('modalPipeKind').value;
+      const spec = document.getElementById('modalPipeSpec').value;
+      const len = document.getElementById('modalPipeLength').value;
+      const color = kind === 'FIRE' ? '#dc2626' : kind === 'ELEC' ? '#d97706' : kind === 'HVAC' ? '#059669' : '#0284c7';
+
+      const newPipe = {
+        id: 'P-' + Date.now(),
+        name: name,
+        shop: shop,
+        category: kind,
+        spec: spec,
+        length: len,
+        points: drawnPoints.join(' '),
+        color: color
+      };
+
+      try {
+        await fetch('/api/pipes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newPipe)
+        });
+      } catch (e) {
+        console.warn('API 오프라인 모드로 로컬에 반영합니다.');
+      }
+
+      pipesData.push(newPipe);
+      renderPipes();
+      renderPipesList();
+      cancelPipeDraw();
+      selectStore(shop);
+      alert(`[${shop}] ${name}이 등록되었습니다.`);
+    }
+
+    function toggleMobileSidebar() {
+      const s = document.getElementById('sidebar');
+      const b = document.getElementById('mobileBackdrop');
+      s.classList.toggle('-translate-x-full');
+      b.classList.toggle('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>
