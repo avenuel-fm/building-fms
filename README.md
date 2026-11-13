@@ -42,20 +42,17 @@
 
 ---
 
-## 🚀 로컬 실행 방법
+## 🚀 실행 및 접속 방법
 
-### Windows 원클릭 실행
-프로젝트 루트의 `run.bat` 파일을 더블 클릭하면 서버가 시작되고 브라우저가 자동으로 열립니다:
-```cmd
-run.bat
-```
+### 1. 동일 Wi-Fi(내부망) 접속
+- **PC 실행**: `run.bat` 더블 클릭 (또는 `cargo run`)
+- **태블릿 접속**: `http://192.168.0.34:8080`
 
-### Cargo 직접 실행
-```bash
-cargo run
-```
-서버가 시작되면 브라우저에서 아래 주소로 접속합니다:
-👉 **http://127.0.0.1:8080**
+### 2. 외부망(LTE/5G/외부 어디서나) 접속 (Cloudflare Tunnel)
+- **외부 접속 터널 실행**: `tunnel.bat` 더블 클릭
+- 생성되는 고유 보안 HTTPS URL로 외부 태블릿/스마트폰 어디서든 접속 가능:
+  👉 **https://combine-phoenix-specifies-circulation.trycloudflare.com**
+- 안전한 HTTPS 통신이 적용되어 태블릿의 **"홈 화면에 앱으로 설치(PWA)"**도 원터치로 완벽 지원됩니다.
 
 ---
 
