@@ -2,7 +2,7 @@
   "name": "잠실점 에비뉴엘 시설물 관제",
   "short_name": "에비뉴엘 FMS",
   "description": "잠실점 에비뉴엘 시설물 및 배관 통합 관제 시스템",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0f172a",
