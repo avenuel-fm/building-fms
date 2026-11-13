@@ -71,9 +71,9 @@ async fn main() {
         .layer(cors)
         .layer(TraceLayer::new_for_http());
 
-    // 7. 서버 구동
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
-    tracing::info!("🚀 잠실점 에비뉴엘 시설물 관제 서버 시작: http://{}", addr);
+    // 7. 서버 구동 (0.0.0.0으로 바인딩하여 안드로이드 태블릿/모바일 접속 허용)
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+    tracing::info!("🚀 잠실점 에비뉴엘 시설물 관제 서버 시작: http://0.0.0.0:8080 (로컬 접속: http://127.0.0.1:8080)");
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
