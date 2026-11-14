@@ -102,6 +102,7 @@ impl AppState {
                 length: "18.4m".into(),
                 points: "470,300 115,300 115,270".into(),
                 color: "#0284c7".into(),
+                floor: "2F".into(),
                 updated_at: now,
             },
             PipeLine {
@@ -113,6 +114,7 @@ impl AppState {
                 length: "21.0m".into(),
                 points: "460,290 125,290 125,270".into(),
                 color: "#d97706".into(),
+                floor: "2F".into(),
                 updated_at: now,
             },
             PipeLine {
@@ -124,6 +126,7 @@ impl AppState {
                 length: "15.6m".into(),
                 points: "470,310 105,310 105,270".into(),
                 color: "#dc2626".into(),
+                floor: "2F".into(),
                 updated_at: now,
             },
             PipeLine {
@@ -135,6 +138,7 @@ impl AppState {
                 length: "23.8m".into(),
                 points: "470,300 285,300 285,270".into(),
                 color: "#0284c7".into(),
+                floor: "2F".into(),
                 updated_at: now,
             },
             PipeLine {
@@ -146,6 +150,7 @@ impl AppState {
                 length: "19.2m".into(),
                 points: "460,290 295,290 295,270".into(),
                 color: "#d97706".into(),
+                floor: "2F".into(),
                 updated_at: now,
             },
             PipeLine {
@@ -157,6 +162,7 @@ impl AppState {
                 length: "24.5m".into(),
                 points: "470,300 655,300 655,270".into(),
                 color: "#0284c7".into(),
+                floor: "2F".into(),
                 updated_at: now,
             },
             PipeLine {
@@ -168,6 +174,7 @@ impl AppState {
                 length: "26.8m".into(),
                 points: "460,290 645,290 645,270".into(),
                 color: "#d97706".into(),
+                floor: "2F".into(),
                 updated_at: now,
             },
             PipeLine {
@@ -179,6 +186,7 @@ impl AppState {
                 length: "31.2m".into(),
                 points: "470,300 825,300 825,270".into(),
                 color: "#0284c7".into(),
+                floor: "2F".into(),
                 updated_at: now,
             },
             PipeLine {
@@ -190,6 +198,7 @@ impl AppState {
                 length: "33.0m".into(),
                 points: "460,290 835,290 835,270".into(),
                 color: "#d97706".into(),
+                floor: "2F".into(),
                 updated_at: now,
             },
             PipeLine {
@@ -201,6 +210,7 @@ impl AppState {
                 length: "18.1m".into(),
                 points: "470,300 115,300 115,330".into(),
                 color: "#0284c7".into(),
+                floor: "2F".into(),
                 updated_at: now,
             },
             PipeLine {
@@ -212,6 +222,7 @@ impl AppState {
                 length: "19.7m".into(),
                 points: "460,290 125,290 125,330".into(),
                 color: "#d97706".into(),
+                floor: "2F".into(),
                 updated_at: now,
             },
             PipeLine {
@@ -223,6 +234,7 @@ impl AppState {
                 length: "22.4m".into(),
                 points: "470,320 285,320 285,330".into(),
                 color: "#059669".into(),
+                floor: "2F".into(),
                 updated_at: now,
             },
         ];

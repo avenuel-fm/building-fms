@@ -112,6 +112,18 @@
             <span class="hidden sm:inline">잠실점 에비뉴엘 시설물 관제</span>
           </h1>
           <span id="headerFloorBadge" class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-slate-100 dark:bg-slate-800 border border-[var(--border)] text-[var(--foreground)] shrink-0 font-bold">2F</span>
+          
+          <!-- 실시간 동기화 상태 뱃지 -->
+          <span id="realtimeBadge" class="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 shrink-0" title="Supabase 웹소켓 실시간 동기화 활성화됨">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>실시간</span>
+          </span>
+
+          <!-- 오프라인 상태 뱃지 (PWA) -->
+          <span id="offlineBadge" class="hidden items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 shrink-0">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+            <span>오프라인</span>
+          </span>
         </div>
       </div>
 
@@ -315,68 +327,12 @@
 
               <!-- 복도 및 코어 구역 -->
               <rect x="380" y="20" width="180" height="130" fill="var(--sidebar)" stroke="var(--cad-wall)" stroke-width="2"/>
-              <text x="470" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--muted-foreground)">EV / E/S 중앙 코어</text>
+              <text id="coreTextTop" x="470" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--muted-foreground)">EV / E/S 중앙 코어</text>
               <rect x="380" y="450" width="180" height="130" fill="var(--sidebar)" stroke="var(--cad-wall)" stroke-width="2"/>
-              <text x="470" y="520" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--muted-foreground)">EPS / TPS / 방재실</text>
+              <text id="coreTextBottom" x="470" y="520" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--muted-foreground)">EPS / TPS / 방재실</text>
 
-              <!-- 잠실점 에비뉴엘 2F 매장 구역 레이어 -->
-              <g id="shopsLayer">
-                <!-- 샤넬 -->
-                <g class="shop-box" data-shop="샤넬" onclick="selectStore('샤넬')">
-                  <rect id="rect-샤넬" x="40" y="40" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
-                  <text x="115" y="145" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">샤넬</text>
-                  <text x="115" y="170" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">CHANEL</text>
-                </g>
-
-                <!-- 에르메스 -->
-                <g class="shop-box" data-shop="에르메스" onclick="selectStore('에르메스')">
-                  <rect id="rect-에르메스" x="210" y="40" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
-                  <text x="285" y="145" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">에르메스</text>
-                  <text x="285" y="170" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">HERMES</text>
-                </g>
-
-                <!-- 루이비통 -->
-                <g class="shop-box" data-shop="루이비통" onclick="selectStore('루이비통')">
-                  <rect id="rect-루이비통" x="580" y="40" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
-                  <text x="655" y="145" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">루이비통</text>
-                  <text x="655" y="170" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">LOUIS VUITTON</text>
-                </g>
-
-                <!-- 디올 -->
-                <g class="shop-box" data-shop="디올" onclick="selectStore('디올')">
-                  <rect id="rect-디올" x="750" y="40" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
-                  <text x="825" y="145" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">디올</text>
-                  <text x="825" y="170" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">DIOR</text>
-                </g>
-
-                <!-- 구찌 -->
-                <g class="shop-box" data-shop="구찌" onclick="selectStore('구찌')">
-                  <rect id="rect-구찌" x="40" y="330" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
-                  <text x="115" y="435" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">구찌</text>
-                  <text x="115" y="460" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">GUCCI</text>
-                </g>
-
-                <!-- 롤렉스 -->
-                <g class="shop-box" data-shop="롤렉스" onclick="selectStore('롤렉스')">
-                  <rect id="rect-롤렉스" x="210" y="330" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
-                  <text x="285" y="435" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">롤렉스</text>
-                  <text x="285" y="460" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">ROLEX</text>
-                </g>
-
-                <!-- 까르띠에 -->
-                <g class="shop-box" data-shop="까르띠에" onclick="selectStore('까르띠에')">
-                  <rect id="rect-까르띠에" x="580" y="330" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
-                  <text x="655" y="435" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">까르띠에</text>
-                  <text x="655" y="460" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">CARTIER</text>
-                </g>
-
-                <!-- 티파니 -->
-                <g class="shop-box" data-shop="티파니" onclick="selectStore('티파니')">
-                  <rect id="rect-티파니" x="750" y="330" width="150" height="230" fill="var(--shop-fill)" stroke="var(--shop-border)" stroke-width="2" rx="4"/>
-                  <text x="825" y="435" text-anchor="middle" font-size="15" font-weight="bold" fill="var(--foreground)">티파니</text>
-                  <text x="825" y="460" text-anchor="middle" font-size="11" fill="var(--muted-foreground)">TIFFANY & CO.</text>
-                </g>
-              </g>
+              <!-- 동적 매장 및 설비 구역 레이어 (층별 자동 렌더링) -->
+              <g id="shopsLayer"></g>
 
               <!-- 메인 복도 공급 라인 -->
               <g id="mainCorridorPipes">
@@ -645,13 +601,15 @@
     let currentUser = { role: 'admin', name: '김시설 관리자' };
     let currentFloor = '2F';
     let selectedStore = null;
+    let selectedCategory = 'ALL';
 
     let shopsData = [];
     let pipesData = [];
     let facilitiesData = [];
 
-    // Supabase 클라이언트 전역 인스턴스
+    // Supabase 클라이언트 및 실시간 웹소켓 채널
     let supabaseClient = null;
+    let realtimeChannel = null;
 
     // 도면 팬 & 줌 상태 변수
     let currentZoom = 0.92;
@@ -660,12 +618,66 @@
     let isPanning = false;
     let startPanX = 0;
     let startPanY = 0;
+    let gestureInitialized = false;
 
     // 모바일 터치 핀치 줌 변수
     let initialTouchDistance = 0;
     let initialZoom = currentZoom;
 
-    // Supabase 클라이언트 초기화
+    // 8개 매장/구역 도면 SVG 슬롯 좌표 (상단 4구역, 하단 4구역)
+    const SHOP_SLOTS = [
+      { x: 40, y: 40, width: 150, height: 230, textY: 145, subY: 170 },
+      { x: 210, y: 40, width: 150, height: 230, textY: 145, subY: 170 },
+      { x: 580, y: 40, width: 150, height: 230, textY: 145, subY: 170 },
+      { x: 750, y: 40, width: 150, height: 230, textY: 145, subY: 170 },
+      { x: 40, y: 330, width: 150, height: 230, textY: 435, subY: 460 },
+      { x: 210, y: 330, width: 150, height: 230, textY: 435, subY: 460 },
+      { x: 580, y: 330, width: 150, height: 230, textY: 435, subY: 460 },
+      { x: 750, y: 330, width: 150, height: 230, textY: 435, subY: 460 }
+    ];
+
+    // 층별 메타데이터 (코어 명칭 및 도면 타이틀)
+    const FLOOR_METAS = {
+      '4F': { name: '4F 뷰티/라운지', title: '4F 뷰티 & VIP 라운지 관제 평면도', coreTop: 'EV / VIP 전용 엘리베이터', coreBottom: '공조기계실 / 린넨실' },
+      '3F': { name: '3F 패션/컨템포러리', title: '3F 럭셔리 패션 & 슈즈 관제 평면도', coreTop: 'EV / E/S 중앙 코어', coreBottom: 'EPS / TPS / 제2방재실' },
+      '2F': { name: '2F 명품 부티크', title: '2F 하이엔드 부티크 관제 평면도', coreTop: 'EV / E/S 중앙 코어', coreBottom: 'EPS / TPS / 방재실' },
+      '1F': { name: '1F 워치 & 주얼리', title: '1F 럭셔리 워치 & 주얼리 관제 평면도', coreTop: 'EV / E/S 중앙 코어', coreBottom: '중앙 보안 안내데스크' },
+      'B1': { name: 'B1 고메 & 푸드마켓', title: 'B1 프리미엄 푸드마켓 & 다이닝 관제 평면도', coreTop: '식품 화물용 EV 코어', coreBottom: '주방 위생 배수 집수정' },
+      'B2': { name: 'B2 기계실 & 변전실', title: 'B2 특고압 변전실 & 냉온수기실 관제 평면도', coreTop: '중앙 냉온수기 (흡수식 3대)', coreBottom: '특고압 수전 변전실 (22.9kV)' },
+      'B3': { name: 'B3 저수조 & 펌프실', title: 'B3 소방 저수조 & 가압펌프실 관제 평면도', coreTop: '음용수 저수조 (300톤)', coreBottom: '소방 전용 저수조 (500톤)' },
+      'ROOF': { name: 'ROOF 옥상 냉각탑', title: 'ROOF 옥상 대용량 냉각탑 & 외기팬룸 관제 평면도', coreTop: '1~2호 대용량 냉각탑', coreBottom: '3~4호 냉각탑 & 인버터실' }
+    };
+
+    // 1. PWA 서비스 워커 및 네트워크 상태 감지 (오프라인 모드 완벽 지원)
+    function initPwaAndNetwork() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          console.log('[PWA] 서비스 워커 등록 완료:', reg.scope);
+        }).catch((err) => {
+          console.warn('[PWA] 서비스 워커 등록 스킵:', err);
+        });
+      }
+
+      function updateNetworkStatus() {
+        const isOnline = navigator.onLine;
+        const offlineBadge = document.getElementById('offlineBadge');
+        if (offlineBadge) {
+          if (isOnline) {
+            offlineBadge.classList.add('hidden');
+            offlineBadge.classList.remove('inline-flex');
+          } else {
+            offlineBadge.classList.remove('hidden');
+            offlineBadge.classList.add('inline-flex');
+          }
+        }
+      }
+
+      window.addEventListener('online', updateNetworkStatus);
+      window.addEventListener('offline', updateNetworkStatus);
+      updateNetworkStatus();
+    }
+
+    // 2. Supabase 초기화 및 실시간 웹소켓(Realtime) 구독
     function initSupabase() {
       const url = localStorage.getItem('avenuel_sb_url') || '';
       const key = localStorage.getItem('avenuel_sb_key') || '';
@@ -678,6 +690,7 @@
         try {
           supabaseClient = window.supabase.createClient(url, key);
           updateDbStatusBadge(true, 'Supabase 클라우드 DB 연결됨');
+          subscribeRealtime();
         } catch (e) {
           console.warn('Supabase 초기화 실패:', e);
           updateDbStatusBadge(false, '설정 오류');
@@ -685,6 +698,79 @@
       } else {
         updateDbStatusBadge(false, '미설정 (로컬/캐시 모드)');
       }
+    }
+
+    // Supabase Realtime WebSocket 구독 (다중 기기 실시간 동기화)
+    function subscribeRealtime() {
+      if (!supabaseClient || realtimeChannel) return;
+
+      try {
+        realtimeChannel = supabaseClient.channel('avenuel-fms-realtime')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'pipes' }, (payload) => {
+            console.log('[Realtime] 배관 변경 감지:', payload);
+            handleRealtimePipeChange(payload);
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'facilities' }, (payload) => {
+            console.log('[Realtime] 시설물 변경 감지:', payload);
+            handleRealtimeFacilityChange(payload);
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'shops' }, (payload) => {
+            console.log('[Realtime] 매장 정보 변경 감지:', payload);
+            handleRealtimeShopChange(payload);
+          })
+          .subscribe((status) => {
+            console.log('[Realtime] 채널 상태:', status);
+            const rBadge = document.getElementById('realtimeBadge');
+            if (rBadge) {
+              if (status === 'SUBSCRIBED') {
+                rBadge.classList.remove('hidden');
+                rBadge.classList.add('inline-flex');
+              } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+                rBadge.classList.add('hidden');
+                rBadge.classList.remove('inline-flex');
+              }
+            }
+          });
+      } catch (err) {
+        console.warn('[Realtime] 구독 실패:', err);
+      }
+    }
+
+    function handleRealtimePipeChange(payload) {
+      const { eventType, new: newRec, old: oldRec } = payload;
+      if (eventType === 'INSERT') {
+        if (!pipesData.some(p => p.id === newRec.id)) pipesData.push(newRec);
+      } else if (eventType === 'UPDATE') {
+        const idx = pipesData.findIndex(p => p.id === newRec.id);
+        if (idx !== -1) pipesData[idx] = newRec;
+        else pipesData.push(newRec);
+      } else if (eventType === 'DELETE') {
+        pipesData = pipesData.filter(p => p.id !== oldRec.id);
+      }
+      renderAll();
+    }
+
+    function handleRealtimeFacilityChange(payload) {
+      const { eventType, new: newRec, old: oldRec } = payload;
+      if (eventType === 'INSERT') {
+        if (!facilitiesData.some(f => f.id === newRec.id)) facilitiesData.push(newRec);
+      } else if (eventType === 'UPDATE') {
+        const idx = facilitiesData.findIndex(f => f.id === newRec.id);
+        if (idx !== -1) facilitiesData[idx] = newRec;
+      } else if (eventType === 'DELETE') {
+        facilitiesData = facilitiesData.filter(f => f.id !== oldRec.id);
+      }
+      renderAll();
+    }
+
+    function handleRealtimeShopChange(payload) {
+      const { eventType, new: newRec } = payload;
+      if (eventType === 'INSERT' || eventType === 'UPDATE') {
+        const idx = shopsData.findIndex(s => s.name === newRec.name);
+        if (idx !== -1) shopsData[idx] = newRec;
+        else shopsData.push(newRec);
+      }
+      renderAll();
     }
 
     function updateDbStatusBadge(connected, text) {
@@ -726,7 +812,8 @@
         const { data, error } = await supabaseClient.from('shops').select('count', { count: 'exact', head: true });
         if (error) throw error;
         updateDbStatusBadge(true, 'Supabase 클라우드 DB 연결됨');
-        alert('Supabase 연결 성공! 주 데이터베이스로 활성화되었습니다.');
+        subscribeRealtime();
+        alert('Supabase 연결 성공! 주 데이터베이스 및 실시간 동기화가 활성화되었습니다.');
         loadData();
       } catch (err) {
         updateDbStatusBadge(false, '연결 실패');
@@ -734,7 +821,7 @@
       }
     }
 
-    // 1. 초기 데이터 로드 (우선순위: 로컬 Rust FMS -> Supabase 클라우드 -> 내장 캐시)
+    // 3. 초기 데이터 로드 (로컬 Rust FMS -> Supabase 클라우드 -> 내장 프리셋 캐시)
     async function loadData() {
       // A. 로컬 Rust FMS API 시도
       try {
@@ -747,13 +834,12 @@
           shopsData = await shopsRes.json();
           pipesData = await pipesRes.json();
           facilitiesData = await facRes.json();
+          saveLocalCache();
           renderAll();
           initViewportGesture();
           return;
         }
-      } catch (err) {
-        // 백엔드 미구동 환경 (GitHub Pages 정적 호스팅 등)
-      }
+      } catch (err) {}
 
       // B. Supabase 클라우드 DB 직접 조회
       if (supabaseClient) {
@@ -767,6 +853,7 @@
             shopsData = sRes.data;
             pipesData = pRes.data || [];
             facilitiesData = fRes.data || [];
+            saveLocalCache();
             renderAll();
             initViewportGesture();
             return;
@@ -776,55 +863,323 @@
         }
       }
 
-      // C. 내장 시드 데이터로 가동
-      console.info('내장 시드 데이터로 관제 시스템을 시작합니다.');
-      loadFallbackData();
+      // C. 오프라인 로컬스토리지 캐시 확인
+      const cached = loadLocalCache();
+      if (cached) {
+        shopsData = cached.shops;
+        pipesData = cached.pipes;
+        facilitiesData = cached.facilities;
+      } else {
+        // D. 전 층 내장 시드 데이터로 가동
+        console.info('내장 전 층 시드 데이터로 관제 시스템을 시작합니다.');
+        loadAllFloorFallbackData();
+        saveLocalCache();
+      }
+
       renderAll();
       initViewportGesture();
     }
 
-    function loadFallbackData() {
+    function saveLocalCache() {
+      try {
+        localStorage.setItem('avenuel_offline_data', JSON.stringify({
+          shops: shopsData,
+          pipes: pipesData,
+          facilities: facilitiesData,
+          savedAt: Date.now()
+        }));
+      } catch(e){}
+    }
+
+    function loadLocalCache() {
+      try {
+        const str = localStorage.getItem('avenuel_offline_data');
+        if (str) return JSON.parse(str);
+      } catch(e){}
+      return null;
+    }
+
+    // 4. 전 층(4F~B3, ROOF) 시드 데이터베이스
+    function loadAllFloorFallbackData() {
       shopsData = [
-        { name: '샤넬', code: 'CHANEL', desc: '급수(50A), 전력(75kW), 소방SP', pipe_count: 3 },
-        { name: '에르메스', code: 'HERMES', desc: '급수(65A), 간선전력(50kW)', pipe_count: 2 },
-        { name: '루이비통', code: 'LOUIS VUITTON', desc: '급수(50A), 특고압(80kW)', pipe_count: 2 },
-        { name: '디올', code: 'DIOR', desc: '급수(40A), 조명간선(45kW)', pipe_count: 2 },
-        { name: '구찌', code: 'GUCCI', desc: '급수(50A), 전력선(60kW)', pipe_count: 2 },
-        { name: '롤렉스', code: 'ROLEX', desc: '공조덕트, 분전반', pipe_count: 1 },
-        { name: '까르띠에', code: 'CARTIER', desc: '급수, 전력 배선 대기', pipe_count: 0 },
-        { name: '티파니', code: 'TIFFANY & CO.', desc: '조명선로 인입 완료', pipe_count: 0 }
+        // 2F 명품 부티크
+        { name: '샤넬', code: 'CHANEL', desc: '급수(50A), 전력(75kW), 소방SP', pipe_count: 3, floor: '2F' },
+        { name: '에르메스', code: 'HERMES', desc: '급수(65A), 간선전력(50kW)', pipe_count: 2, floor: '2F' },
+        { name: '루이비통', code: 'LOUIS VUITTON', desc: '급수(50A), 특고압(80kW)', pipe_count: 2, floor: '2F' },
+        { name: '디올', code: 'DIOR', desc: '급수(40A), 조명간선(45kW)', pipe_count: 2, floor: '2F' },
+        { name: '구찌', code: 'GUCCI', desc: '급수(50A), 전력선(60kW)', pipe_count: 2, floor: '2F' },
+        { name: '롤렉스', code: 'ROLEX', desc: '공조덕트, 분전반', pipe_count: 1, floor: '2F' },
+        { name: '까르띠에', code: 'CARTIER', desc: '급수, 전력 배선 대기', pipe_count: 0, floor: '2F' },
+        { name: '티파니', code: 'TIFFANY & CO.', desc: '조명선로 인입 완료', pipe_count: 0, floor: '2F' },
+
+        // 1F 럭셔리 워치&주얼리
+        { name: '반클리프 아펠', code: 'VCA', desc: '특화보안간선(40kW), 소방SP', pipe_count: 2, floor: '1F' },
+        { name: '불가리', code: 'BVLGARI', desc: '간선전력(50kW), 급수(40A)', pipe_count: 2, floor: '1F' },
+        { name: '피아제', code: 'PIAGET', desc: '정밀온습도공조, 조명전력', pipe_count: 1, floor: '1F' },
+        { name: '바쉐론 콘스탄틴', code: 'VC', desc: '공조덕트, 소방SP', pipe_count: 1, floor: '1F' },
+        { name: '쇼메', code: 'CHAUMET', desc: '급수라인(32A), 분전반', pipe_count: 1, floor: '1F' },
+        { name: '쇼파드', code: 'CHOPARD', desc: '전력선로(35kW), SP', pipe_count: 1, floor: '1F' },
+        { name: '그라프', code: 'GRAFF', desc: '보안전력, 정밀냉방', pipe_count: 1, floor: '1F' },
+        { name: 'IWC', code: 'IWC', desc: '조명간선, 환기덕트', pipe_count: 1, floor: '1F' },
+
+        // 3F 럭셔리 패션
+        { name: '프라다', code: 'PRADA', desc: '전력(60kW), 급수(40A), SP', pipe_count: 2, floor: '3F' },
+        { name: '버버리', code: 'BURBERRY', desc: '급수(50A), 전력간선(45kW)', pipe_count: 2, floor: '3F' },
+        { name: '생로랑', code: 'SAINT LAURENT', desc: '조명분전반, 공조덕트', pipe_count: 1, floor: '3F' },
+        { name: '톰포드', code: 'TOM FORD', desc: '전력선로(40kW), 소방SP', pipe_count: 1, floor: '3F' },
+        { name: '몽클레르', code: 'MONCLER', desc: '공조기(FCU 2대), 조명전력', pipe_count: 1, floor: '3F' },
+        { name: '셀린느', code: 'CELINE', desc: '급수배관(32A), 전력', pipe_count: 1, floor: '3F' },
+        { name: '발렌시아가', code: 'BALENCIAGA', desc: '대용량전력(50kW), SP', pipe_count: 1, floor: '3F' },
+        { name: '보테가 베네타', code: 'BOTTEGA', desc: '조명간선, 환기덕트', pipe_count: 1, floor: '3F' },
+
+        // 4F 뷰티 & VIP 라운지
+        { name: '에비뉴엘 VIP 라운지', code: 'VIP-LOUNGE', desc: '대용량급탕(50A), 전력(80kW), 개별공조', pipe_count: 3, floor: '4F' },
+        { name: '멤버스 살롱', code: 'MEMBERS', desc: '급탕(40A), 조명간선, SP', pipe_count: 2, floor: '4F' },
+        { name: '프리미엄 스파', code: 'SPA', desc: '대용량온수순환(65A), 오수배관', pipe_count: 2, floor: '4F' },
+        { name: '파인 다이닝 A', code: 'DINING-A', desc: '주방가스(50A), 급수, 그리스배수', pipe_count: 2, floor: '4F' },
+        { name: '파인 다이닝 B', code: 'DINING-B', desc: '주방배기덕트, 전력(70kW)', pipe_count: 1, floor: '4F' },
+        { name: '테라스 카페', code: 'TERRACE', desc: '급수배관(32A), 옥외전력', pipe_count: 1, floor: '4F' },
+        { name: '웰니스 클리닉', code: 'WELLNESS', desc: '정밀공조, 비상전원선', pipe_count: 1, floor: '4F' },
+        { name: '운영 사무국', code: 'MANAGEMENT', desc: '통신간선, 소방SP', pipe_count: 1, floor: '4F' },
+
+        // B1 프리미엄 푸드마켓
+        { name: '고메 스트리트', code: 'GOURMET', desc: '대용량가스관(65A), 주방배수', pipe_count: 2, floor: 'B1' },
+        { name: '에비뉴엘 푸드마켓', code: 'FOOD-MKT', desc: '저온냉장냉매관, 급수(50A)', pipe_count: 2, floor: 'B1' },
+        { name: '와인 라이브러리', code: 'WINE', desc: '항온항습공조, 정밀전력', pipe_count: 1, floor: 'B1' },
+        { name: '센트럴 키친', code: 'CENTRAL-K', desc: '대용량그리스배수관(100A), 가스', pipe_count: 2, floor: 'B1' },
+        { name: '델리 코너', code: 'DELI', desc: '급수(40A), 전력간선', pipe_count: 1, floor: 'B1' },
+        { name: '베이커리 아뜰리에', code: 'BAKERY', desc: '오븐동력전력(75kW), 배기덕트', pipe_count: 1, floor: 'B1' },
+        { name: '신선 식품관', code: 'FRESH', desc: '냉동냉매관, 배수트렌치', pipe_count: 1, floor: 'B1' },
+        { name: '중앙 하역장', code: 'LOGISTICS', desc: '소방방화셔터, 환기팬룸', pipe_count: 1, floor: 'B1' },
+
+        // B2 기계실 & 변전실
+        { name: '특고압 수전변전실', code: 'SUBSTATION', desc: '특고압 22.9kV 메인수전반, 변압기 5대', pipe_count: 3, floor: 'B2' },
+        { name: '제1 냉온수기실', code: 'CHILLER-1', desc: '흡수식 냉온수기 800RT x 2대', pipe_count: 2, floor: 'B2' },
+        { name: '제2 냉온수기실', code: 'CHILLER-2', desc: '터보 냉동기 600RT x 2대', pipe_count: 2, floor: 'B2' },
+        { name: '중앙 급수가압펌프실', code: 'PUMP-ROOM', desc: '부스터 급수펌프 5대, 인버터반', pipe_count: 2, floor: 'B2' },
+        { name: '방재 중앙관제센터', code: 'DISASTER-CTR', desc: 'R형 수신기, 비상방송엠프, CCTV', pipe_count: 2, floor: 'B2' },
+        { name: '중앙 보일러실', code: 'BOILER', desc: '진공온수보일러 3대, 가스정압기', pipe_count: 1, floor: 'B2' },
+        { name: '비상 발전기실', code: 'GENERATOR', desc: '비상디젤발전기 2000kW x 2대', pipe_count: 1, floor: 'B2' },
+        { name: '주차 관제소', code: 'PARKING-MGT', desc: '지하주차환기팬 제어반', pipe_count: 1, floor: 'B2' },
+
+        // B3 저수조 & 방재 펌프
+        { name: '메인 소방 저수조', code: 'FIRE-TANK', desc: '소방전용 유효수량 500톤', pipe_count: 2, floor: 'B3' },
+        { name: '음용수 저수조', code: 'WATER-TANK', desc: '스테인리스 음용수조 300톤', pipe_count: 2, floor: 'B3' },
+        { name: '오폐수 정화설비', code: 'SEWAGE-TREAT', desc: '폭기조, 오수탈수기, 탈취탑', pipe_count: 1, floor: 'B3' },
+        { name: '빗물 재활용 설비', code: 'RAIN-RECYCLE', desc: '중수도 저류조 200톤, 여과장치', pipe_count: 1, floor: 'B3' },
+        { name: '배수 집수정 피트', code: 'DRAIN-PIT', desc: '수중배수펌프 4대, 플로트스위치', pipe_count: 1, floor: 'B3' },
+        { name: '소방 주/충압펌프실', code: 'FIRE-PUMP', desc: '소화전/SP 엔진펌프 및 전동펌프', pipe_count: 2, floor: 'B3' },
+        { name: '지하 환기배연실', code: 'VENT-SMOKE', desc: '대용량 배연송풍기 60000CMH', pipe_count: 1, floor: 'B3' },
+        { name: '비상연료 저장고', code: 'FUEL-TANK', desc: '경유 저장탱크 15000L', pipe_count: 1, floor: 'B3' },
+
+        // ROOF 옥상 냉각탑
+        { name: '제1-2호 냉각탑', code: 'TOWER-12', desc: '밀폐형 대용량 냉각탑 1600RT', pipe_count: 2, floor: 'ROOF' },
+        { name: '제3-4호 냉각탑', code: 'TOWER-34', desc: '밀폐형 냉각탑 1200RT', pipe_count: 2, floor: 'ROOF' },
+        { name: '옥상 외기조화기(AHU)', code: 'ROOF-AHU', desc: '대공간 외기취입 공조기', pipe_count: 2, floor: 'ROOF' },
+        { name: '옥상 고가수조', code: 'ELEV-TANK', desc: '자연낙하 비상고가수조 50톤', pipe_count: 1, floor: 'ROOF' },
+        { name: '중앙 배기팬룸', code: 'EXHAUST-FAN', desc: '전관 주방/화장실 통합 배기팬', pipe_count: 1, floor: 'ROOF' },
+        { name: '태양광 인버터실', code: 'SOLAR-INV', desc: '옥상 BIPV 태양광 100kW 인버터', pipe_count: 1, floor: 'ROOF' },
+        { name: '피뢰 설비반', code: 'LIGHTNING', desc: '조기방전형 ESE 피뢰침 감시반', pipe_count: 1, floor: 'ROOF' },
+        { name: 'EV 권상기 기계실', code: 'ELEV-MACHINE', desc: '초고속 엘리베이터 권상기 8대', pipe_count: 1, floor: 'ROOF' }
       ];
+
       pipesData = [
-        { id: 'P-201', name: '샤넬 인입 전용 급수관 50A', shop: '샤넬', category: 'PLUMBING', spec: '50A 스테인리스', length: '18.4m', points: '470,300 115,300 115,270', color: '#0284c7' },
-        { id: 'P-202', name: '샤넬 메인 3상 수전간선 75kW', shop: '샤넬', category: 'ELEC', spec: 'F-CV 35sq', length: '21.0m', points: '460,290 125,290 125,270', color: '#d97706' },
-        { id: 'P-203', name: '샤넬 습식 스프링클러 배관', shop: '샤넬', category: 'FIRE', spec: '80A 배관', length: '15.6m', points: '470,310 105,310 105,270', color: '#dc2626' },
-        { id: 'P-204', name: '에르메스 급수/오수 메인 배관', shop: '에르메스', category: 'PLUMBING', spec: '65A 스테인리스', length: '23.8m', points: '470,300 285,300 285,270', color: '#0284c7' },
-        { id: 'P-205', name: '에르메스 전력 간선 분전선', shop: '에르메스', category: 'ELEC', spec: 'F-CV 25sq', length: '19.2m', points: '460,290 295,290 295,270', color: '#d97706' },
-        { id: 'P-206', name: '루이비통 전용 급수 배관 50A', shop: '루이비통', category: 'PLUMBING', spec: '50A 스테인리스', length: '24.5m', points: '470,300 655,300 655,270', color: '#0284c7' },
-        { id: 'P-207', name: '루이비통 대용량 수전설비 80kW', shop: '루이비통', category: 'ELEC', spec: 'F-CV 50sq', length: '26.8m', points: '460,290 645,290 645,270', color: '#d97706' },
-        { id: 'P-208', name: '디올 인입 급수관 40A', shop: '디올', category: 'PLUMBING', spec: '40A 스테인리스', length: '31.2m', points: '470,300 825,300 825,270', color: '#0284c7' },
-        { id: 'P-209', name: '디올 조명 및 전력 간선 45kW', shop: '디올', category: 'ELEC', spec: 'F-CV 25sq', length: '33.0m', points: '460,290 835,290 835,270', color: '#d97706' },
-        { id: 'P-210', name: '구찌 인입 급수 라인 50A', shop: '구찌', category: 'PLUMBING', spec: '50A 배관', length: '18.1m', points: '470,300 115,300 115,330', color: '#0284c7' },
-        { id: 'P-211', name: '구찌 메인 전력선 60kW', shop: '구찌', category: 'ELEC', spec: 'F-CV 35sq', length: '19.7m', points: '460,290 125,290 125,330', color: '#d97706' },
-        { id: 'P-212', name: '롤렉스 공조 급기 덕트 300x200', shop: '롤렉스', category: 'HVAC', spec: '아연도강판 덕트', length: '22.4m', points: '470,320 285,320 285,330', color: '#059669' }
+        // 2F 배관
+        { id: 'P-201', name: '샤넬 인입 전용 급수관 50A', shop: '샤넬', category: 'PLUMBING', spec: '50A 스테인리스', length: '18.4m', points: '470,300 115,300 115,270', color: '#0284c7', floor: '2F' },
+        { id: 'P-202', name: '샤넬 메인 3상 수전간선 75kW', shop: '샤넬', category: 'ELEC', spec: 'F-CV 35sq', length: '21.0m', points: '460,290 125,290 125,270', color: '#d97706', floor: '2F' },
+        { id: 'P-203', name: '샤넬 습식 스프링클러 배관', shop: '샤넬', category: 'FIRE', spec: '80A 배관', length: '15.6m', points: '470,310 105,310 105,270', color: '#dc2626', floor: '2F' },
+        { id: 'P-204', name: '에르메스 급수/오수 메인 배관', shop: '에르메스', category: 'PLUMBING', spec: '65A 스테인리스', length: '23.8m', points: '470,300 285,300 285,270', color: '#0284c7', floor: '2F' },
+        { id: 'P-205', name: '에르메스 전력 간선 분전선', shop: '에르메스', category: 'ELEC', spec: 'F-CV 25sq', length: '19.2m', points: '460,290 295,290 295,270', color: '#d97706', floor: '2F' },
+        { id: 'P-206', name: '루이비통 전용 급수 배관 50A', shop: '루이비통', category: 'PLUMBING', spec: '50A 스테인리스', length: '24.5m', points: '470,300 655,300 655,270', color: '#0284c7', floor: '2F' },
+        { id: 'P-207', name: '루이비통 대용량 수전설비 80kW', shop: '루이비통', category: 'ELEC', spec: 'F-CV 50sq', length: '26.8m', points: '460,290 645,290 645,270', color: '#d97706', floor: '2F' },
+        { id: 'P-208', name: '디올 인입 급수관 40A', shop: '디올', category: 'PLUMBING', spec: '40A 스테인리스', length: '31.2m', points: '470,300 825,300 825,270', color: '#0284c7', floor: '2F' },
+        { id: 'P-209', name: '디올 조명 및 전력 간선 45kW', shop: '디올', category: 'ELEC', spec: 'F-CV 25sq', length: '33.0m', points: '460,290 835,290 835,270', color: '#d97706', floor: '2F' },
+        { id: 'P-210', name: '구찌 인입 급수 라인 50A', shop: '구찌', category: 'PLUMBING', spec: '50A 배관', length: '18.1m', points: '470,300 115,300 115,330', color: '#0284c7', floor: '2F' },
+        { id: 'P-211', name: '구찌 메인 전력선 60kW', shop: '구찌', category: 'ELEC', spec: 'F-CV 35sq', length: '19.7m', points: '460,290 125,290 125,330', color: '#d97706', floor: '2F' },
+        { id: 'P-212', name: '롤렉스 공조 급기 덕트 300x200', shop: '롤렉스', category: 'HVAC', spec: '아연도강판 덕트', length: '22.4m', points: '470,320 285,320 285,330', color: '#059669', floor: '2F' },
+
+        // 1F 배관
+        { id: 'P-101', name: '반클리프 특화 전력선 40kW', shop: '반클리프 아펠', category: 'ELEC', spec: 'F-FR-8 25sq', length: '19.5m', points: '460,290 115,290 115,270', color: '#d97706', floor: '1F' },
+        { id: 'P-102', name: '반클리프 소방 SP 50A', shop: '반클리프 아펠', category: 'FIRE', spec: '배관용 탄소강관', length: '16.2m', points: '470,310 105,310 105,270', color: '#dc2626', floor: '1F' },
+        { id: 'P-103', name: '불가리 수전 간선 50kW', shop: '불가리', category: 'ELEC', spec: 'F-CV 35sq', length: '20.1m', points: '460,290 285,290 285,270', color: '#d97706', floor: '1F' },
+
+        // B2 기계실 배관
+        { id: 'P-B201', name: '특고압 22.9kV 주간선 325sq', shop: '특고압 수전변전실', category: 'ELEC', spec: 'CN-CV-W 325sq', length: '35.0m', points: '460,450 115,450 115,270', color: '#d97706', floor: 'B2' },
+        { id: 'P-B202', name: '중앙 냉온수 헤더 배관 250A', shop: '제1 냉온수기실', category: 'HVAC', spec: '백관 250A 보온재', length: '28.4m', points: '470,300 285,300 285,270', color: '#059669', floor: 'B2' },
+        { id: 'P-B203', name: '메인 급수 부스터 가압배관 150A', shop: '중앙 급수가압펌프실', category: 'PLUMBING', spec: '스테인리스 150A', length: '31.0m', points: '470,300 750,300 750,270', color: '#0284c7', floor: 'B2' },
+
+        // ROOF 냉각탑 배관
+        { id: 'P-R01', name: '1-2호기 냉각수 순환 환수관 300A', shop: '제1-2호 냉각탑', category: 'HVAC', spec: '흑관 300A 보온재', length: '22.0m', points: '470,300 115,300 115,270', color: '#059669', floor: 'ROOF' },
+        { id: 'P-R02', name: '옥상 고가수조 급수 입상관 100A', shop: '옥상 고가수조', category: 'PLUMBING', spec: 'STS 100A 동파방지열선', length: '26.5m', points: '470,300 750,300 750,270', color: '#0284c7', floor: 'ROOF' }
       ];
+
       facilitiesData = [
+        // 2F 시설물
         { id: 'F-101', name: '샤넬 옥내소화전 2-1', shop: '샤넬', category: 'FIRE', floor: '2F', x: 50, y: 50 },
         { id: 'F-102', name: '샤넬 조명 분전반 LP-2A', shop: '샤넬', category: 'ELEC', floor: '2F', x: 170, y: 50 },
         { id: 'F-103', name: '에르메스 소방 밸브 스테이션', shop: '에르메스', category: 'FIRE', floor: '2F', x: 220, y: 50 },
         { id: 'F-104', name: '루이비통 메인 배전반 MP-2B', shop: '루이비통', category: 'ELEC', floor: '2F', x: 710, y: 50 },
-        { id: 'F-105', name: '디올 FCU 공조기 2대', shop: '디올', category: 'HVAC', floor: '2F', x: 880, y: 50 }
+        { id: 'F-105', name: '디올 FCU 공조기 2대', shop: '디올', category: 'HVAC', floor: '2F', x: 880, y: 50 },
+
+        // 1F 시설물
+        { id: 'F-106', name: '반클리프 보안분전반 SP-1A', shop: '반클리프 아펠', category: 'ELEC', floor: '1F', x: 50, y: 50 },
+        { id: 'F-107', name: '1F 중앙 옥내소화전', shop: '불가리', category: 'FIRE', floor: '1F', x: 220, y: 50 },
+
+        // B2 시설물
+        { id: 'F-B201', name: 'VCB 수전차단기반 22.9kV', shop: '특고압 수전변전실', category: 'ELEC', floor: 'B2', x: 50, y: 50 },
+        { id: 'F-B202', name: '흡수식 냉온수기 1호기', shop: '제1 냉온수기실', category: 'HVAC', floor: 'B2', x: 220, y: 50 },
+        { id: 'F-B203', name: '방재 R형 통합중계반', shop: '방재 중앙관제센터', category: 'FIRE', floor: 'B2', x: 170, y: 340 }
       ];
     }
 
+    // 5. 전체 렌더링 오케스트레이터
     function renderAll() {
+      renderShopsLayer();
       renderShopsList();
       renderPipes();
       renderFacilities();
       renderPipesList();
     }
 
-    // 2. 테마 토글
+    // 6. 도면 내 매장/구역 SVG 동적 렌더링 (층별 자동 배치)
+    function renderShopsLayer() {
+      const layer = document.getElementById('shopsLayer');
+      if (!layer) return;
+
+      const currentFloorShops = shopsData.filter(s => s.floor === currentFloor || (!s.floor && currentFloor === '2F'));
+
+      layer.innerHTML = currentFloorShops.map((s, idx) => {
+        const slot = SHOP_SLOTS[idx % SHOP_SLOTS.length];
+        const isSelected = selectedStore === s.name;
+        const rectFill = isSelected ? (currentTheme === 'light' ? '#e0f2fe' : '#0369a1') : 'var(--shop-fill)';
+        const rectStroke = isSelected ? '#0284c7' : 'var(--shop-border)';
+        const strokeWidth = isSelected ? '3' : '2';
+
+        return `
+          <g class="shop-box" data-shop="${s.name}" onclick="selectStore('${s.name}')">
+            <rect id="rect-${s.name}" x="${slot.x}" y="${slot.y}" width="${slot.width}" height="${slot.height}" fill="${rectFill}" stroke="${rectStroke}" stroke-width="${strokeWidth}" rx="4"/>
+            <text x="${slot.x + slot.width / 2}" y="${slot.textY}" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--foreground)">${s.name}</text>
+            <text x="${slot.x + slot.width / 2}" y="${slot.subY}" text-anchor="middle" font-size="10.5" fill="var(--muted-foreground)">${s.code || ''}</text>
+          </g>
+        `;
+      }).join('');
+    }
+
+    // 7. 사이드바 매장 목록 렌더링
+    function renderShopsList() {
+      const c = document.getElementById('shopsListContainer');
+      if (!c) return;
+      const currentFloorShops = shopsData.filter(s => s.floor === currentFloor || (!s.floor && currentFloor === '2F'));
+
+      c.innerHTML = currentFloorShops.map(s => {
+        const isSelected = selectedStore === s.name;
+        return `
+          <div onclick="selectStore('${s.name}')" data-shop="${s.name}" class="shop-list-item p-2 sm:p-2.5 rounded border ${isSelected ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/40' : 'border-[var(--border)] bg-[var(--card)]'} hover:border-slate-400 cursor-pointer flex items-center justify-between transition-colors">
+            <div class="min-w-0 pr-2">
+              <div class="font-bold text-xs text-[var(--foreground)] truncate">${s.name} <span class="text-[10px] text-[var(--muted-foreground)] font-mono font-normal">(${s.code || ''})</span></div>
+              <div class="text-[10px] sm:text-[11px] text-[var(--muted-foreground)] truncate">${s.desc || s.description || ''}</div>
+            </div>
+            <span class="px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-mono font-semibold bg-[var(--sidebar)] border border-[var(--border)] shrink-0">${s.pipe_count || s.pipeCount || 0}개 선로</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 8. 배관 및 전기 선로 렌더링 (층 & 카테고리 필터)
+    function renderPipes() {
+      const layer = document.getElementById('pipePathLayer');
+      if (!layer) return;
+
+      const floorPipes = pipesData.filter(p => {
+        const matchFloor = p.floor === currentFloor || (!p.floor && currentFloor === '2F');
+        const matchCat = selectedCategory === 'ALL' || p.category === selectedCategory;
+        return matchFloor && matchCat;
+      });
+
+      layer.innerHTML = floorPipes.map(p => `
+        <polyline id="${p.id}" class="pipe-path" data-shop="${p.shop}" data-category="${p.category}" points="${p.points}" stroke="${p.color}" stroke-width="3" fill="none" onclick="selectStore('${p.shop}')"/>
+      `).join('');
+    }
+
+    // 9. 사이드바 배관 목록 렌더링
+    function renderPipesList() {
+      const c = document.getElementById('pipesListContainer');
+      if (!c) return;
+
+      const floorPipes = pipesData.filter(p => p.floor === currentFloor || (!p.floor && currentFloor === '2F'));
+
+      c.innerHTML = floorPipes.map(p => `
+        <div onclick="selectStore('${p.shop}')" class="p-2 sm:p-2.5 rounded border border-[var(--border)] bg-[var(--card)] hover:border-slate-400 cursor-pointer flex items-center justify-between text-xs">
+          <div class="min-w-0 pr-2">
+            <div class="font-bold text-[var(--foreground)] truncate">${p.name}</div>
+            <div class="text-[10px] sm:text-[11px] text-[var(--muted-foreground)] truncate">인입: <span class="font-bold underline">${p.shop}</span> | ${p.spec} (${p.length})</div>
+          </div>
+          <span class="px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0" style="background-color: ${p.color}20; color: ${p.color};">${p.category}</span>
+        </div>
+      `).join('');
+    }
+
+    // 10. 시설물 핀 렌더링
+    function renderFacilities() {
+      const layer = document.getElementById('pinLayer');
+      if (!layer) return;
+
+      const floorFacs = facilitiesData.filter(f => {
+        const matchFloor = f.floor === currentFloor || (!f.floor && currentFloor === '2F');
+        const matchCat = selectedCategory === 'ALL' || f.category === selectedCategory;
+        return matchFloor && matchCat;
+      });
+
+      layer.innerHTML = floorFacs.map(f => {
+        const color = f.category === 'FIRE' ? '#dc2626' : f.category === 'ELEC' ? '#d97706' : '#059669';
+        return `
+          <g class="fac-pin" data-shop="${f.shop}" data-category="${f.category}" transform="translate(${f.x}, ${f.y})" onclick="selectStore('${f.shop}')">
+            <circle r="7" fill="${color}" stroke="#ffffff" stroke-width="1.5"/>
+            <text y="3.5" text-anchor="middle" font-size="7" fill="#ffffff" font-weight="bold">${f.category[0]}</text>
+          </g>
+        `;
+      }).join('');
+    }
+
+    // 11. 층 변경 기능 (완전 반응형 층별 도면 및 데이터 분리 전환)
+    function changeFloor(targetFloor) {
+      currentFloor = targetFloor;
+      const meta = FLOOR_METAS[targetFloor] || { name: targetFloor, title: `${targetFloor} 평면도 관제 화면`, coreTop: 'EV / E/S 중앙 코어', coreBottom: 'EPS / TPS / 방재실' };
+
+      // 상단 배지 및 라벨 갱신
+      const floorBadge = document.getElementById('headerFloorBadge');
+      const floorLabel = document.getElementById('currentFloorLabel');
+      const statusText = document.getElementById('cadStatusText');
+      const coreTop = document.getElementById('coreTextTop');
+      const coreBottom = document.getElementById('coreTextBottom');
+
+      if (floorBadge) floorBadge.innerText = targetFloor;
+      if (floorLabel) floorLabel.innerText = meta.name;
+      if (statusText) statusText.innerText = meta.title;
+      if (coreTop) coreTop.innerText = meta.coreTop;
+      if (coreBottom) coreBottom.innerText = meta.coreBottom;
+
+      // 층 버튼 활성화 스타일 갱신
+      document.querySelectorAll('#floorButtonGroup .floor-btn').forEach(btn => {
+        if (btn.innerText.trim() === targetFloor) {
+          btn.className = 'floor-btn active-floor py-1.5 text-xs font-mono rounded font-bold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900';
+        } else {
+          btn.className = 'floor-btn py-1.5 text-xs font-mono rounded border border-[var(--border)] hover:bg-[var(--sidebar)]';
+        }
+      });
+
+      clearShopSelection();
+      renderAll();
+    }
+
+    // 12. 설비 분류 라디오 필터 핸들러
+    function handleCategoryFilter(cat) {
+      selectedCategory = cat;
+      renderPipes();
+      renderFacilities();
+    }
+
+    // 13. 테마 토글 (라이트 / 다크)
     function toggleTheme() {
       const html = document.documentElement;
       if (currentTheme === 'light') {
@@ -838,9 +1193,10 @@
         currentTheme = 'light';
         document.getElementById('themeToggleText').innerText = '어두운 테마';
       }
+      renderShopsLayer();
     }
 
-    // 3. 매장 선택 시 연결 선로 단독 활성화 & 타 매장 비활성화 (Dim)
+    // 14. 매장 선택 시 연결 선로 단독 활성화 & 타 매장 비활성화 (Dim)
     function selectStore(shopName) {
       if (selectedStore === shopName) {
         clearShopSelection();
@@ -849,23 +1205,29 @@
       selectedStore = shopName;
 
       const banner = document.getElementById('shopFocusBanner');
-      banner.classList.remove('hidden');
-      document.getElementById('focusShopTitle').innerText = shopName;
-      document.getElementById('cadStatusText').innerText = shopName + ' 연결 선로 집중 관제';
+      if (banner) banner.classList.remove('hidden');
+      const titleEl = document.getElementById('focusShopTitle');
+      if (titleEl) titleEl.innerText = shopName;
+      const statusEl = document.getElementById('cadStatusText');
+      if (statusEl) statusEl.innerText = `[${currentFloor}] ${shopName} 연결 선로 집중 관제`;
 
       document.querySelectorAll('#shopsLayer > g').forEach(g => {
         const s = g.getAttribute('data-shop');
         const rect = g.querySelector('rect');
         if (s === shopName) {
           g.classList.remove('dimmed');
-          rect.setAttribute('stroke', '#0284c7');
-          rect.setAttribute('stroke-width', '3');
-          rect.setAttribute('fill', currentTheme === 'light' ? '#e0f2fe' : '#0369a1');
+          if (rect) {
+            rect.setAttribute('stroke', '#0284c7');
+            rect.setAttribute('stroke-width', '3');
+            rect.setAttribute('fill', currentTheme === 'light' ? '#e0f2fe' : '#0369a1');
+          }
         } else {
           g.classList.add('dimmed');
-          rect.setAttribute('stroke', 'var(--shop-border)');
-          rect.setAttribute('stroke-width', '2');
-          rect.setAttribute('fill', 'var(--shop-fill)');
+          if (rect) {
+            rect.setAttribute('stroke', 'var(--shop-border)');
+            rect.setAttribute('stroke-width', '2');
+            rect.setAttribute('fill', 'var(--shop-fill)');
+          }
         }
       });
 
@@ -897,17 +1259,19 @@
         }
       });
 
-      // 모바일 드로어가 열려있다면 도면 뷰를 위해 자동 닫기
       const s = document.getElementById('sidebar');
-      if (!s.classList.contains('-translate-x-full')) {
+      if (s && !s.classList.contains('-translate-x-full')) {
         toggleMobileSidebar();
       }
     }
 
     function clearShopSelection() {
       selectedStore = null;
-      document.getElementById('shopFocusBanner').classList.add('hidden');
-      document.getElementById('cadStatusText').innerText = currentFloor + ' 평면도 관제 화면';
+      const banner = document.getElementById('shopFocusBanner');
+      if (banner) banner.classList.add('hidden');
+      const statusEl = document.getElementById('cadStatusText');
+      const meta = FLOOR_METAS[currentFloor] || { title: `${currentFloor} 평면도 관제 화면` };
+      if (statusEl) statusEl.innerText = meta.title;
 
       document.querySelectorAll('.dimmed').forEach(el => el.classList.remove('dimmed'));
       document.querySelectorAll('.active-pipe-flow').forEach(el => el.classList.remove('active-pipe-flow'));
@@ -923,102 +1287,10 @@
       });
     }
 
-    function renderPipes() {
-      const layer = document.getElementById('pipePathLayer');
-      layer.innerHTML = pipesData.map(p => `
-        <polyline id="${p.id}" class="pipe-path" data-shop="${p.shop}" data-category="${p.category}" points="${p.points}" stroke="${p.color}" stroke-width="3" fill="none" onclick="selectStore('${p.shop}')"/>
-      `).join('');
-    }
-
-    function renderFacilities() {
-      const layer = document.getElementById('pinLayer');
-      layer.innerHTML = facilitiesData.map(f => {
-        const color = f.category === 'FIRE' ? '#dc2626' : f.category === 'ELEC' ? '#d97706' : '#059669';
-        return `
-          <g class="fac-pin" data-shop="${f.shop}" data-category="${f.category}" transform="translate(${f.x}, ${f.y})" onclick="selectStore('${f.shop}')">
-            <circle r="7" fill="${color}" stroke="#ffffff" stroke-width="1.5"/>
-            <text y="3.5" text-anchor="middle" font-size="7" fill="#ffffff" font-weight="bold">${f.category[0]}</text>
-          </g>
-        `;
-      }).join('');
-    }
-
-    function renderShopsList() {
-      const c = document.getElementById('shopsListContainer');
-      c.innerHTML = shopsData.map(s => `
-        <div onclick="selectStore('${s.name}')" data-shop="${s.name}" class="shop-list-item p-2 sm:p-2.5 rounded border border-[var(--border)] bg-[var(--card)] hover:border-slate-400 cursor-pointer flex items-center justify-between transition-colors">
-          <div class="min-w-0 pr-2">
-            <div class="font-bold text-xs text-[var(--foreground)] truncate">${s.name} <span class="text-[10px] text-[var(--muted-foreground)] font-mono font-normal">(${s.code})</span></div>
-            <div class="text-[10px] sm:text-[11px] text-[var(--muted-foreground)] truncate">${s.desc || s.description}</div>
-          </div>
-          <span class="px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-mono font-semibold bg-[var(--sidebar)] border border-[var(--border)] shrink-0">${s.pipe_count || s.pipeCount || 0}개 선로</span>
-        </div>
-      `).join('');
-    }
-
-    function renderPipesList() {
-      const c = document.getElementById('pipesListContainer');
-      c.innerHTML = pipesData.map(p => `
-        <div onclick="selectStore('${p.shop}')" class="p-2 sm:p-2.5 rounded border border-[var(--border)] bg-[var(--card)] hover:border-slate-400 cursor-pointer flex items-center justify-between text-xs">
-          <div class="min-w-0 pr-2">
-            <div class="font-bold text-[var(--foreground)] truncate">${p.name}</div>
-            <div class="text-[10px] sm:text-[11px] text-[var(--muted-foreground)] truncate">인입: <span class="font-bold underline">${p.shop}</span> | ${p.spec} (${p.length})</div>
-          </div>
-          <span class="px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0" style="background-color: ${p.color}20; color: ${p.color};">${p.category}</span>
-        </div>
-      `).join('');
-    }
-
-    function switchSidebarTab(tab) {
-      const sContainer = document.getElementById('shopsListContainer');
-      const pContainer = document.getElementById('pipesListContainer');
-      const fContainer = document.getElementById('facilityListContainer');
-      const sBtn = document.getElementById('tabShopsBtn');
-      const pBtn = document.getElementById('tabPipesBtn');
-      const fBtn = document.getElementById('tabFacBtn');
-
-      [sContainer, pContainer, fContainer].forEach(el => el.classList.add('hidden'));
-      [sBtn, pBtn, fBtn].forEach(b => b.className = 'flex-1 py-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]');
-
-      if (tab === 'shops') {
-        sContainer.classList.remove('hidden');
-        sBtn.className = 'flex-1 py-2 font-bold border-b-2 border-slate-900 dark:border-slate-100 text-[var(--foreground)]';
-      } else if (tab === 'pipes') {
-        pContainer.classList.remove('hidden');
-        pBtn.className = 'flex-1 py-2 font-bold border-b-2 border-slate-900 dark:border-slate-100 text-[var(--foreground)]';
-        renderPipesList();
-      } else {
-        fContainer.classList.remove('hidden');
-        fBtn.className = 'flex-1 py-2 font-bold border-b-2 border-slate-900 dark:border-slate-100 text-[var(--foreground)]';
-      }
-    }
-
-    function changeFloor(f) {
-      currentFloor = f;
-      document.getElementById('currentFloorLabel').innerText = f === '2F' ? '2F 명품관' : f;
-      document.getElementById('headerFloorBadge').innerText = f;
-      document.querySelectorAll('.floor-btn').forEach(b => {
-        b.className = 'floor-btn py-1.5 text-xs font-mono rounded border border-[var(--border)] hover:bg-[var(--sidebar)]';
-      });
-      event.target.className = 'floor-btn active-floor py-1.5 text-xs font-mono rounded font-bold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900';
-      clearShopSelection();
-    }
-
-    function handleCategoryFilter(cat) {
-      document.querySelectorAll('.pipe-path').forEach(p => {
-        const c = p.getAttribute('data-category');
-        p.style.display = (cat === 'ALL' || c === cat) ? 'block' : 'none';
-      });
-      document.querySelectorAll('.fac-pin').forEach(pin => {
-        const c = pin.getAttribute('data-category');
-        pin.style.display = (cat === 'ALL' || c === cat) ? 'block' : 'none';
-      });
-    }
-
-    // 4. 도면 제스처 (마우스 및 모바일 터치 드래그 & 줌)
+    // 15. 도면 제스처 (Pan & Zoom)
     function updateSceneTransform() {
       const group = document.getElementById('sceneGroup');
-      group.setAttribute('transform', `translate(${panX}, ${panY}) scale(${currentZoom})`);
+      if (group) group.setAttribute('transform', `translate(${panX}, ${panY}) scale(${currentZoom})`);
     }
 
     function zoomIn() {
@@ -1039,9 +1311,11 @@
     }
 
     function initViewportGesture() {
+      if (gestureInitialized) return;
+      gestureInitialized = true;
       const vp = document.getElementById('viewport');
+      if (!vp) return;
 
-      // 마우스 패닝
       vp.addEventListener('mousedown', (e) => {
         if (isDrawing) return;
         isPanning = true;
@@ -1056,7 +1330,6 @@
       });
       window.addEventListener('mouseup', () => { isPanning = false; });
 
-      // 모바일 터치 패닝 및 핀치 줌
       vp.addEventListener('touchstart', (e) => {
         if (isDrawing) return;
         if (e.touches.length === 1) {
@@ -1090,7 +1363,6 @@
         initialTouchDistance = 0;
       });
 
-      // 마우스 휠 줌
       vp.addEventListener('wheel', (e) => {
         e.preventDefault();
         if (e.deltaY < 0) zoomIn();
@@ -1104,25 +1376,50 @@
       return Math.sqrt(dx * dx + dy * dy);
     }
 
-    // 5. 모바일 사이드바 토글 (특정 섹션 바로 열기 지원)
+    // 16. 모바일 사이드바 서랍 토글
     function toggleMobileSidebar(targetTab) {
       const s = document.getElementById('sidebar');
       const b = document.getElementById('mobileBackdrop');
+      if (!s) return;
       const isOpen = !s.classList.contains('-translate-x-full');
 
       if (isOpen && !targetTab) {
         s.classList.add('-translate-x-full');
-        b.classList.add('hidden');
+        if (b) b.classList.add('hidden');
       } else {
         s.classList.remove('-translate-x-full');
-        b.classList.remove('hidden');
+        if (b) b.classList.remove('hidden');
         if (targetTab === 'shops' || targetTab === 'pipes' || targetTab === 'facilities') {
           switchSidebarTab(targetTab);
         }
       }
     }
 
-    // 6. 4자리 PIN 로그인 모달
+    function switchSidebarTab(tab) {
+      const sContainer = document.getElementById('shopsListContainer');
+      const pContainer = document.getElementById('pipesListContainer');
+      const fContainer = document.getElementById('facilityListContainer');
+      const sBtn = document.getElementById('tabShopsBtn');
+      const pBtn = document.getElementById('tabPipesBtn');
+      const fBtn = document.getElementById('tabFacBtn');
+
+      [sContainer, pContainer, fContainer].forEach(el => el && el.classList.add('hidden'));
+      [sBtn, pBtn, fBtn].forEach(b => b && (b.className = 'flex-1 py-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]'));
+
+      if (tab === 'shops' && sContainer && sBtn) {
+        sContainer.classList.remove('hidden');
+        sBtn.className = 'flex-1 py-2 font-bold border-b-2 border-slate-900 dark:border-slate-100 text-[var(--foreground)]';
+      } else if (tab === 'pipes' && pContainer && pBtn) {
+        pContainer.classList.remove('hidden');
+        pBtn.className = 'flex-1 py-2 font-bold border-b-2 border-slate-900 dark:border-slate-100 text-[var(--foreground)]';
+        renderPipesList();
+      } else if (fContainer && fBtn) {
+        fContainer.classList.remove('hidden');
+        fBtn.className = 'flex-1 py-2 font-bold border-b-2 border-slate-900 dark:border-slate-100 text-[var(--foreground)]';
+      }
+    }
+
+    // 17. PIN 인증 및 사용자 UI
     function openLoginModal() {
       document.getElementById('loginModal').classList.remove('hidden');
       document.getElementById('pinInput').value = '';
@@ -1156,44 +1453,40 @@
           updateUserUI();
           closeLoginModal();
           alert(data.message);
-        } else {
-          alert(data.message || '인증 실패');
+          return;
         }
-      } catch (e) {
-        if (pin === '1234') {
-          currentUser = { role: 'admin', name: '김시설 관리자' };
-          updateUserUI();
-          closeLoginModal();
-          alert('관리자 로그인 성공 (1234)');
-        } else if (pin === '5678') {
-          currentUser = { role: 'viewer', name: '이순찰 직원' };
-          updateUserUI();
-          closeLoginModal();
-          alert('직원(뷰어) 로그인 성공 (5678)');
-        } else {
-          alert('등록되지 않은 PIN 번호입니다.');
-        }
+      } catch (e) {}
+
+      if (pin === '1234') {
+        currentUser = { role: 'admin', name: '김시설 관리자' };
+        updateUserUI();
+        closeLoginModal();
+        alert('관리자 로그인 성공 (1234)');
+      } else if (pin === '5678') {
+        currentUser = { role: 'viewer', name: '이순찰 직원' };
+        updateUserUI();
+        closeLoginModal();
+        alert('직원(뷰어) 로그인 성공 (5678)');
+      } else {
+        alert('등록되지 않은 PIN 번호입니다.');
       }
     }
 
     function updateUserUI() {
       const isAdm = currentUser.role === 'admin';
       const badge = document.getElementById('roleBadge');
-      badge.innerText = isAdm ? '관리자' : '직원(뷰어)';
-      badge.className = isAdm 
-        ? 'px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shrink-0'
-        : 'px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 shrink-0';
-      
-      document.getElementById('sidebarUserSub').innerText = `(${currentUser.name})`;
+      if (badge) {
+        badge.innerText = isAdm ? '관리자' : '직원(뷰어)';
+        badge.className = isAdm 
+          ? 'px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shrink-0'
+          : 'px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 shrink-0';
+      }
+      const subUser = document.getElementById('sidebarUserSub');
+      if (subUser) subUser.innerText = `(${currentUser.name})`;
       const adminSec = document.getElementById('adminActionSection');
       const staffBtn = document.getElementById('staffManageBtn');
-      if (isAdm) {
-        adminSec.classList.remove('hidden');
-        if (staffBtn) staffBtn.classList.remove('hidden');
-      } else {
-        adminSec.classList.add('hidden');
-        if (staffBtn) staffBtn.classList.add('hidden');
-      }
+      if (adminSec) adminSec.classList.toggle('hidden', !isAdm);
+      if (staffBtn) staffBtn.classList.toggle('hidden', !isAdm);
     }
 
     function openStaffModal() {
@@ -1203,7 +1496,7 @@
       document.getElementById('staffModal').classList.add('hidden');
     }
 
-    // 6-B. DB 및 구글 드라이브 주간 백업 모달
+    // 18. DB 및 구글 드라이브 주간 백업 모달
     function openBackupModal() {
       document.getElementById('backupModal').classList.remove('hidden');
       initSupabase();
@@ -1213,7 +1506,6 @@
       document.getElementById('backupModal').classList.add('hidden');
     }
 
-    // 백업 수동 실행 (로컬 백엔드 우선 -> 서버리스 환경 시 스냅샷 즉시 다운로드)
     async function triggerManualBackup(type) {
       const typeLabel = type === 'FULL' ? '전체(FULL)' : '증분(INCREMENTAL)';
       try {
@@ -1224,22 +1516,18 @@
         });
         const data = await res.json();
         if (res.ok && data.success) {
-          alert(`[백업 완료] ${data.message}\n파일명: ${data.log.file_name}\n기록된 항목: ${data.log.records_count}건`);
+          alert(`[백업 완료] ${data.message}\n파일명: ${data.log.file_name}\n기록 항목: ${data.log.records_count}건`);
           fetchBackupLogs();
           return;
         }
-      } catch (err) {
-        // 서버 미응답 시 브라우저 스냅샷 모드로 진행
-      }
+      } catch (err) {}
 
-      // 서버리스(GitHub Pages) 모드 백업 생성
       downloadJsonBackup(type);
       recordLocalBackupLog(type);
       fetchBackupLogs();
       alert(`[${typeLabel} 백업 완료] 로컬 백업 파일 다운로드가 완료되었습니다.`);
     }
 
-    // JSON 백업 파일 생성 및 브라우저 다운로드
     function downloadJsonBackup(type = 'FULL') {
       const now = new Date();
       const timeStr = now.toISOString().replace(/[:.]/g, '-');
@@ -1248,11 +1536,11 @@
       const backupPayload = {
         meta: {
           app: 'Avenuel Building Facility Management System',
-          location: '잠실점 에비뉴엘 2F',
+          location: '잠실점 에비뉴엘 FMS',
           backup_type: type,
           created_at: now.toISOString(),
           target: 'GOOGLE_DRIVE_BACKUP',
-          version: '1.0'
+          version: '1.2'
         },
         data: {
           shops: shopsData,
@@ -1272,7 +1560,6 @@
       URL.revokeObjectURL(url);
     }
 
-    // 로컬스토리지 백업 로그 기록 (서버리스 환경)
     function recordLocalBackupLog(type) {
       const logs = JSON.parse(localStorage.getItem('avenuel_backup_logs') || '[]');
       const now = new Date();
@@ -1289,16 +1576,14 @@
       localStorage.setItem('avenuel_backup_logs', JSON.stringify(logs));
     }
 
-    // 백업 이력 조회
     async function fetchBackupLogs() {
       const container = document.getElementById('backupLogsContainer');
+      if (!container) return;
       let logs = [];
 
       try {
         const res = await fetch('/api/backup/logs');
-        if (res.ok) {
-          logs = await res.json();
-        }
+        if (res.ok) logs = await res.json();
       } catch (err) {}
 
       if (!logs || logs.length === 0) {
@@ -1330,30 +1615,27 @@
       }).join('');
     }
 
-    // 2F 시드 데이터를 Supabase 테이블에 일괄 전송
     async function syncSeedToSupabase() {
       if (!supabaseClient) {
         alert('먼저 Supabase URL과 Key를 설정하고 저장해 주세요.');
         return;
       }
 
-      if (!confirm('현재 2F 기본 시드 데이터(매장, 배관, 시설물)를 Supabase 테이블에 동기화하시겠습니까?')) {
+      if (!confirm('현재 전 층 시드 데이터(매장, 배관, 시설물)를 Supabase 테이블에 일괄 전송/동기화하시겠습니까?')) {
         return;
       }
 
       try {
-        // 1. 매장 동기화
         if (shopsData && shopsData.length > 0) {
           const shopRows = shopsData.map(s => ({
             name: s.name,
-            code: s.code,
+            code: s.code || '',
             description: s.desc || s.description || '',
             pipe_count: s.pipe_count || s.pipeCount || 0
           }));
           await supabaseClient.from('shops').upsert(shopRows, { onConflict: 'name' });
         }
 
-        // 2. 배관 동기화
         if (pipesData && pipesData.length > 0) {
           const pipeRows = pipesData.map(p => ({
             id: p.id,
@@ -1368,7 +1650,6 @@
           await supabaseClient.from('pipes').upsert(pipeRows, { onConflict: 'id' });
         }
 
-        // 3. 시설물 동기화
         if (facilitiesData && facilitiesData.length > 0) {
           const facRows = facilitiesData.map(f => ({
             id: f.id,
@@ -1382,14 +1663,14 @@
           await supabaseClient.from('facilities').upsert(facRows, { onConflict: 'id' });
         }
 
-        alert('2F 시드 데이터가 Supabase에 성공적으로 전송/동기화되었습니다.');
+        alert('전 층 데이터가 Supabase에 성공적으로 동기화되었습니다.');
         updateDbStatusBadge(true, 'Supabase 클라우드 DB 연동됨');
       } catch (err) {
-        alert('동기화 실패: ' + (err.message || '테이블 스키마 생성 여부를 확인하세요.'));
+        alert('동기화 실패: ' + (err.message || '테이블 생성 여부를 확인하세요.'));
       }
     }
 
-    // 7. 배관 그리기
+    // 19. 배관 그리기 도구 (현재 활성 층 자동 부여)
     let isDrawing = false;
     let drawnPoints = [];
     function startDrawingPipe() {
@@ -1399,31 +1680,34 @@
       }
       isDrawing = true;
       drawnPoints = [];
-      alert('도면에서 시작점과 꺾임점, 끝점을 차례로 터치/클릭하세요.');
-      // 모바일 드로어가 열려있으면 닫기
+      alert(`[${currentFloor}] 도면에서 시작점과 꺾임점, 끝점을 차례로 터치/클릭하세요.`);
       toggleMobileSidebar();
     }
 
     const svg = document.getElementById('cadSvg');
-    svg.addEventListener('click', (e) => {
-      if (!isDrawing) return;
-      const pt = svg.createSVGPoint();
-      pt.x = e.clientX;
-      pt.y = e.clientY;
-      const svgP = pt.matrixTransform(document.getElementById('sceneGroup').getScreenCTM().inverse());
-      drawnPoints.push(`${Math.round(svgP.x)},${Math.round(svgP.y)}`);
-      
-      const poly = document.getElementById('tempPolyline');
-      poly.classList.remove('hidden');
-      poly.setAttribute('points', drawnPoints.join(' '));
+    if (svg) {
+      svg.addEventListener('click', (e) => {
+        if (!isDrawing) return;
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+        const svgP = pt.matrixTransform(document.getElementById('sceneGroup').getScreenCTM().inverse());
+        drawnPoints.push(`${Math.round(svgP.x)},${Math.round(svgP.y)}`);
+        
+        const poly = document.getElementById('tempPolyline');
+        if (poly) {
+          poly.classList.remove('hidden');
+          poly.setAttribute('points', drawnPoints.join(' '));
+        }
 
-      if (drawnPoints.length >= 3) {
-        isDrawing = false;
-        poly.classList.add('hidden');
-        document.getElementById('modalPipeLength').value = (drawnPoints.length * 7.5).toFixed(1) + ' m';
-        document.getElementById('pipeRegisterModal').classList.remove('hidden');
-      }
-    });
+        if (drawnPoints.length >= 3) {
+          isDrawing = false;
+          if (poly) poly.classList.add('hidden');
+          document.getElementById('modalPipeLength').value = (drawnPoints.length * 7.5).toFixed(1) + ' m';
+          document.getElementById('pipeRegisterModal').classList.remove('hidden');
+        }
+      });
+    }
 
     function cancelPipeDraw() {
       document.getElementById('pipeRegisterModal').classList.add('hidden');
@@ -1432,7 +1716,7 @@
 
     async function saveDrawnPipe() {
       const shop = document.getElementById('modalPipeShop').value;
-      const name = document.getElementById('modalPipeName').value || `${shop} 신규 배관`;
+      const name = document.getElementById('modalPipeName').value || `${shop} 신규 선로`;
       const kind = document.getElementById('modalPipeKind').value;
       const spec = document.getElementById('modalPipeSpec').value;
       const len = document.getElementById('modalPipeLength').value;
@@ -1446,10 +1730,10 @@
         spec: spec,
         length: len,
         points: drawnPoints.join(' '),
-        color: color
+        color: color,
+        floor: currentFloor // 현재 관제 중인 층 부여
       };
 
-      // 1) 로컬 백엔드 저장 시도
       try {
         await fetch('/api/pipes', {
           method: 'POST',
@@ -1458,7 +1742,6 @@
         });
       } catch (e) {}
 
-      // 2) 주 DB (Supabase) 클라우드 실시간 저장
       if (supabaseClient) {
         try {
           await supabaseClient.from('pipes').insert([newPipe]);
@@ -1468,17 +1751,23 @@
       }
 
       pipesData.push(newPipe);
+      saveLocalCache();
       renderPipes();
       renderPipesList();
       cancelPipeDraw();
       selectStore(shop);
-      alert(`[${shop}] ${name}이 등록되었습니다. (Supabase 주 DB 동기화 완료)`);
+      alert(`[${currentFloor} / ${shop}] ${name} 등록이 완료되었습니다.`);
     }
 
+    // 20. 진입점
     document.addEventListener('DOMContentLoaded', () => {
+      initPwaAndNetwork();
       initSupabase();
       loadData();
     });
+  </script>
+</body>
+</html>
   </script>
 </body>
 </html>

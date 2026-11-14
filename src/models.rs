@@ -29,6 +29,10 @@ pub struct Shop {
     pub updated_at: DateTime<Utc>,
 }
 
+fn default_floor() -> String {
+    "2F".to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PipeLine {
     pub id: String,
@@ -39,6 +43,8 @@ pub struct PipeLine {
     pub length: String,             // 예: 18.4m
     pub points: String,             // SVG 좌표 목록 "x1,y1 x2,y2 ..."
     pub color: String,              // Hex 색상코드
+    #[serde(default = "default_floor")]
+    pub floor: String,              // 층 정보 (예: 2F, 1F, B2 등)
     #[serde(default = "Utc::now")]
     pub updated_at: DateTime<Utc>,
 }

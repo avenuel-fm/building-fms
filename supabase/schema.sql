@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS public.pipes (
     length TEXT NOT NULL,
     points TEXT NOT NULL,
     color TEXT NOT NULL,
+    floor TEXT NOT NULL DEFAULT '2F',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -153,3 +154,8 @@ INSERT INTO public.staff (id, name, pin, role) VALUES
 ('ST-01', '김시설 관리자', '1234', 'admin'),
 ('ST-02', '이순찰 직원', '5678', 'viewer')
 ON CONFLICT (id) DO NOTHING;
+
+-- 8. Supabase 실시간 동기화(Realtime) 복제 활성화
+ALTER PUBLICATION supabase_realtime ADD TABLE public.shops;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.pipes;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.facilities;
