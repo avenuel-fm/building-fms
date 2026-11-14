@@ -294,7 +294,7 @@
             <label class="flex items-center gap-2 p-1 rounded hover:bg-[var(--sidebar)] cursor-pointer">
               <input type="radio" name="facilityGroupFilter" value="GROUP_FIRE" onchange="handleGroupFilter('GROUP_FIRE')">
               <span class="w-2.5 h-2.5 rounded-full bg-red-600"></span>
-              <span class="font-semibold text-red-700 dark:text-red-300">소방 (소화전, 스프링클러)</span>
+              <span class="font-semibold text-red-700 dark:text-red-300">소방 (소방, 방화구역, 제연구획)</span>
             </label>
           </div>
         </div>
@@ -750,8 +750,10 @@
               <option value="ELEC_NORMAL">전기일반 (주황색)</option>
               <option value="ELEC_EMERGENCY">전기비상 (붉은색)</option>
             </optgroup>
-            <optgroup label="[소방] 소화설비">
+            <optgroup label="[소방] 소화설비 및 방화/제연구획">
               <option value="FIRE">소방 (붉은색)</option>
+              <option value="FIRE_ZONE">방화구역 (붉은색 점선)</option>
+              <option value="SMOKE_ZONE">제연구획 (붉은색 점선)</option>
             </optgroup>
           </select>
         </div>
@@ -954,6 +956,8 @@
       'DRAIN': '#eab308',          // 배수 (노란색)
       'SANITARY': '#f97316',       // 위생 (황색/오렌지)
       'FIRE': '#dc2626',           // 소방 (붉은색)
+      'FIRE_ZONE': '#dc2626',      // 방화구역 (붉은색 점선)
+      'SMOKE_ZONE': '#dc2626',     // 제연구획 (붉은색 점선)
       'HVAC_SUPPLY': '#16a34a',    // 공조급기 (덕트 - 녹색)
       'HVAC_EXHAUST': '#16a34a',   // 공조배기 (덕트 - 녹색 통일)
       'KITCHEN_EXHAUST': '#16a34a',// 주방배기 (덕트 - 녹색 통일)
@@ -1584,6 +1588,154 @@
     }
 
     // ==========================================
+    // 5-B. 라인 선분 클리핑 엔진
+    // - '방화구역', '제연구획' 속성 라인: 도형 위 겹쳐 그리기 허용 (클리핑 없이 전체 보존)
+    // - 일반 배관/덕트/전기 라인:
+    //   1) 매장(STORE) 속성 도형 안쪽 선분 제거
+    //   2) 외벽(WALL) 바깥으로 나간 선분 제거
+    // ==========================================
+    function clipPipePointsAgainstWallsAndStores(pts, category) {
+      if (!pts || pts.length < 2) return [];
+
+      // 1. 방화구역(FIRE_ZONE), 제연구획(SMOKE_ZONE) 속성은 도형 위 겹쳐 그리기 가능 -> 클리핑 생략
+      if (['FIRE_ZONE', 'SMOKE_ZONE'].includes(category)) {
+        return [pts];
+      }
+
+      // 2. 현재 층 외벽 다각형 목록
+      const userWalls = planObjectsData.filter(o => (o.floor === currentFloor || (!o.floor && currentFloor === '2F')) && o.type === 'WALL' && o.polygon && o.polygon.length >= 3);
+      const outerWallPolygons = userWalls.length > 0 
+        ? userWalls.map(w => w.polygon)
+        : [[{ x: 20, y: 20 }, { x: 920, y: 20 }, { x: 920, y: 580 }, { x: 20, y: 580 }]];
+
+      // 3. 현재 층 매장 다각형 목록
+      const currentFloorShops = shopsData.filter(s => (s.floor === currentFloor || (!s.floor && currentFloor === '2F')) && (s.zone_type === 'STORE' || !s.zone_type));
+      const storePolygons = [];
+      currentFloorShops.forEach((s, idx) => {
+        if (s.polygon && s.polygon.length >= 3) {
+          storePolygons.push(s.polygon);
+        } else {
+          const slot = SHOP_SLOTS[idx % SHOP_SLOTS.length];
+          if (slot) {
+            storePolygons.push([
+              { x: slot.x, y: slot.y },
+              { x: slot.x + slot.width, y: slot.y },
+              { x: slot.x + slot.width, y: slot.y + slot.height },
+              { x: slot.x, y: slot.y + slot.height }
+            ]);
+          }
+        }
+      });
+
+      function isInsideWall(p) {
+        return outerWallPolygons.some(wall => isPointInPoly(p, wall));
+      }
+
+      function isInsideAnyStore(p) {
+        return storePolygons.some(store => isPointInPoly(p, store));
+      }
+
+      function getSegmentIntersectionT(p1, p2, p3, p4) {
+        const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
+        const x3 = p3.x, y3 = p3.y, x4 = p4.x, y4 = p4.y;
+        const denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+        if (denom === 0) return null;
+        const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom;
+        const ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom;
+        if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1) {
+          return ua;
+        }
+        return null;
+      }
+
+      const validSubSegments = [];
+
+      for (let i = 0; i < pts.length - 1; i++) {
+        const pA = pts[i];
+        const pB = pts[i + 1];
+        const tList = [0, 1];
+
+        for (const store of storePolygons) {
+          for (let j = 0; j < store.length; j++) {
+            const edgeA = store[j];
+            const edgeB = store[(j + 1) % store.length];
+            const t = getSegmentIntersectionT(pA, pB, edgeA, edgeB);
+            if (t !== null && t > 0.001 && t < 0.999) {
+              tList.push(t);
+            }
+          }
+        }
+
+        for (const wall of outerWallPolygons) {
+          for (let j = 0; j < wall.length; j++) {
+            const edgeA = wall[j];
+            const edgeB = wall[(j + 1) % wall.length];
+            const t = getSegmentIntersectionT(pA, pB, edgeA, edgeB);
+            if (t !== null && t > 0.001 && t < 0.999) {
+              tList.push(t);
+            }
+          }
+        }
+
+        tList.sort((a, b) => a - b);
+
+        const cleanT = [];
+        for (const t of tList) {
+          if (cleanT.length === 0 || Math.abs(t - cleanT[cleanT.length - 1]) > 0.001) {
+            cleanT.push(t);
+          }
+        }
+
+        for (let k = 0; k < cleanT.length - 1; k++) {
+          const tStart = cleanT[k];
+          const tEnd = cleanT[k + 1];
+          const tMid = (tStart + tEnd) / 2;
+
+          const pMid = {
+            x: pA.x + tMid * (pB.x - pA.x),
+            y: pA.y + tMid * (pB.y - pA.y)
+          };
+
+          // 외벽 내부이면서 매장 내부가 아닌 구간만 합법적 선분으로 보존
+          if (isInsideWall(pMid) && !isInsideAnyStore(pMid)) {
+            const pStart = {
+              x: Math.round(pA.x + tStart * (pB.x - pA.x)),
+              y: Math.round(pA.y + tStart * (pB.y - pA.y))
+            };
+            const pEndPt = {
+              x: Math.round(pA.x + tEnd * (pB.x - pA.x)),
+              y: Math.round(pA.y + tEnd * (pB.y - pA.y))
+            };
+            if (Math.hypot(pEndPt.x - pStart.x, pEndPt.y - pStart.y) > 2) {
+              validSubSegments.push({ start: pStart, end: pEndPt });
+            }
+          }
+        }
+      }
+
+      if (validSubSegments.length === 0) return [];
+
+      const chains = [];
+      let currentChain = [validSubSegments[0].start, validSubSegments[0].end];
+
+      for (let i = 1; i < validSubSegments.length; i++) {
+        const prevEnd = currentChain[currentChain.length - 1];
+        const seg = validSubSegments[i];
+        if (Math.hypot(prevEnd.x - seg.start.x, prevEnd.y - seg.start.y) < 3) {
+          currentChain.push(seg.end);
+        } else {
+          if (currentChain.length >= 2) chains.push(currentChain);
+          currentChain = [seg.start, seg.end];
+        }
+      }
+      if (currentChain.length >= 2) {
+        chains.push(currentChain);
+      }
+
+      return chains;
+    }
+
+    // ==========================================
     // 6. 같은 라인 이어서 그리기 스냅 검사 (속성 일치 필수)
     // ==========================================
     function findSnapPipeEndpoint(pt) {
@@ -1866,21 +2018,16 @@
         if (isSpacePressed) return; // 스페이스바 팬 모드 시 드로잉 차단
         const svgPt = getSvgPoint(e.clientX, e.clientY);
 
-        // A. 라인그리기 모드
+        // A. 라인그리기 모드 (도형 위 자유 그리기 허용)
         if (isDrawingPipeMode) {
-          // 1. 금지 구역(매장, EPS, 공조실, PS, AV, PD) 내부 시작 시 안내 팝업 없이 즉시 차단
-          if (isPointInsideRestrictedZone(svgPt)) return;
-
-          // 2. 같은 라인 이어서 그리기 스냅 검사
           extendingPipeTarget = null;
           const snapEndpoint = findSnapPipeEndpoint(svgPt);
           if (snapEndpoint) {
-            // "같은 라인이라도 상세 속성이 다르면 이어서 그리기 불가. 같은 속성만 이어서 그리기 가능."
+            // 같은 속성만 이어서 그리기 가능
             if (snapEndpoint.pipe.category === currentActiveCategory) {
               extendingPipeTarget = snapEndpoint;
               drawPipeStartPt = snapEndpoint.point;
             } else {
-              // 속성이 다르면 이어그리지 않고 새로운 독립 라인으로 시작
               drawPipeStartPt = svgPt;
             }
           } else {
@@ -1909,22 +2056,10 @@
         if (isSpacePressed || isPanning) return; // 스페이스바 화면 이동 중에는 선 그리기 방지
         const svgPt = getSvgPoint(e.clientX, e.clientY);
 
-        // A. 라인그리기 진행
+        // A. 라인그리기 진행 (10mm 직선 스냅 & 5mm 초과 45도 대각선 스냅, 자유 그리기)
         if (isDrawingPipeMode && isDragDrawingPipe && drawPipeStartPt) {
-          // 5mm 이내 직선, 5mm 초과 대각선 스냅 계산
           const pLast = currentPipePoints[currentPipePoints.length - 1];
-          const snapped = calc5mmSnappedPoint(pLast, svgPt);
-
-          // 금지 구역 교차 검사: 교차 시 안내 팝업 없이 그 지점에서 선이 끊어지며 마무리!
-          const intersectPt = findFirstRestrictedIntersection(pLast, snapped);
-          if (intersectPt) {
-            currentPipePoints.push(intersectPt);
-            tempPoly.setAttribute('points', currentPipePoints.map(p => `${p.x},${p.y}`).join(' '));
-            isDragDrawingPipe = false;
-            tempPoly.classList.add('hidden');
-            finishPipeStroke(true); // 교차로 인한 자동 마무리
-            return;
-          }
+          const snapped = calcLine10mmAnd45SnappedPoint(pLast, svgPt);
 
           const dist = Math.hypot(snapped.x - pLast.x, snapped.y - pLast.y);
           if (dist > 15) {
@@ -1937,7 +2072,7 @@
         // B. 도면 그리기 진행 (5mm 스냅, 곡선 없음)
         if (isDrawingPlanMode && isDragDrawingPlan && planDrawPoints.length > 0) {
           const pLast = planDrawPoints[planDrawPoints.length - 1];
-          const snapped = calc5mmSnappedPoint(pLast, svgPt);
+          const snapped = calcLine10mmAnd45SnappedPoint(pLast, svgPt);
           const dist = Math.hypot(snapped.x - pLast.x, snapped.y - pLast.y);
           if (dist > 15) {
             planDrawPoints.push(snapped);
@@ -1952,7 +2087,7 @@
         if (isDrawingPipeMode && isDragDrawingPipe) {
           isDragDrawingPipe = false;
           tempPoly.classList.add('hidden');
-          finishPipeStroke(false);
+          finishPipeStroke();
           return;
         }
         if (isDrawingPlanMode && isDragDrawingPlan) {
@@ -1969,8 +2104,6 @@
         const svgPt = getSvgPoint(e.touches[0].clientX, e.touches[0].clientY);
 
         if (isDrawingPipeMode) {
-          if (isPointInsideRestrictedZone(svgPt)) return;
-
           extendingPipeTarget = null;
           const snapEndpoint = findSnapPipeEndpoint(svgPt);
           if (snapEndpoint && snapEndpoint.pipe.category === currentActiveCategory) {
@@ -1999,17 +2132,7 @@
         if (isDrawingPipeMode && isDragDrawingPipe && drawPipeStartPt) {
           e.preventDefault();
           const pLast = currentPipePoints[currentPipePoints.length - 1];
-          const snapped = calc5mmSnappedPoint(pLast, svgPt);
-
-          const intersectPt = findFirstRestrictedIntersection(pLast, snapped);
-          if (intersectPt) {
-            currentPipePoints.push(intersectPt);
-            tempPoly.setAttribute('points', currentPipePoints.map(p => `${p.x},${p.y}`).join(' '));
-            isDragDrawingPipe = false;
-            tempPoly.classList.add('hidden');
-            finishPipeStroke(true);
-            return;
-          }
+          const snapped = calcLine10mmAnd45SnappedPoint(pLast, svgPt);
 
           if (Math.hypot(snapped.x - pLast.x, snapped.y - pLast.y) > 15) {
             currentPipePoints.push(snapped);
@@ -2018,7 +2141,7 @@
         } else if (isDrawingPlanMode && isDragDrawingPlan && planDrawPoints.length > 0) {
           e.preventDefault();
           const pLast = planDrawPoints[planDrawPoints.length - 1];
-          const snapped = calc5mmSnappedPoint(pLast, svgPt);
+          const snapped = calcLine10mmAnd45SnappedPoint(pLast, svgPt);
           if (Math.hypot(snapped.x - pLast.x, snapped.y - pLast.y) > 15) {
             planDrawPoints.push(snapped);
             tempPlan.setAttribute('points', planDrawPoints.map(p => `${p.x},${p.y}`).join(' '));
@@ -2030,7 +2153,7 @@
         if (isDrawingPipeMode && isDragDrawingPipe) {
           isDragDrawingPipe = false;
           tempPoly.classList.add('hidden');
-          finishPipeStroke(false);
+          finishPipeStroke();
         } else if (isDrawingPlanMode && isDragDrawingPlan) {
           isDragDrawingPlan = false;
           tempPlan.classList.add('hidden');
@@ -2039,67 +2162,83 @@
       });
     }
 
-    // 라인 그리기 한 획 마침
-    function finishPipeStroke(terminatedByIntersection = false) {
+    // 라인 그리기 한 획 마침 (매장 내부 및 외벽 외부 클리핑, 방화/제연구획은 겹쳐 그리기 전체 보존)
+    function finishPipeStroke() {
       if (!currentPipePoints || currentPipePoints.length < 2) return;
 
-      const ptsStr = currentPipePoints.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join(' ');
+      const category = currentActiveCategory;
+      const isFireOrSmoke = ['FIRE_ZONE', 'SMOKE_ZONE'].includes(category);
 
-      // A. 같은 라인 이어서 그리기 적용
-      if (extendingPipeTarget && extendingPipeTarget.pipe) {
-        const pipe = extendingPipeTarget.pipe;
-        if (extendingPipeTarget.isEnd) {
-          pipe.points = pipe.points.trim() + ' ' + ptsStr;
-        } else {
-          pipe.points = ptsStr + ' ' + pipe.points.trim();
-        }
-        extendingPipeTarget = null;
-        saveLocalCache();
-        renderPipes();
-        renderPipesList();
+      // 매장 내부 선분 및 외벽 외부 선분 클리핑
+      const validChains = clipPipePointsAgainstWallsAndStores(currentPipePoints, category);
+      currentPipePoints = [];
 
-        const cadStatus = document.getElementById('cadStatusText');
-        if (cadStatus) cadStatus.innerText = `[${pipe.name}] 라인이 성공적으로 이어졌습니다.`;
-        currentPipePoints = [];
+      if (!validChains || validChains.length === 0) {
+        showToast('매장 내부 및 외벽 외부 선분이 제거되었습니다.', 500);
         return;
       }
 
-      // B. 신규 라인 생성 (점선으로 도면에 즉시 등록)
-      const p1 = currentPipePoints[0];
-      const pLast = currentPipePoints[currentPipePoints.length - 1];
-      const dist = Math.hypot(pLast.x - p1.x, pLast.y - p1.y);
+      // 유효 체인들을 배관으로 등록
+      validChains.forEach((chain, cIdx) => {
+        if (chain.length < 2) return;
+        const ptsStr = chain.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join(' ');
 
-      const newId = 'P-' + Date.now();
-      const isDuct = ['HVAC_SUPPLY', 'HVAC_EXHAUST', 'KITCHEN_EXHAUST'].includes(currentActiveCategory);
-      const color = isDuct ? '#16a34a' : (PIPE_COLOR_MAP[currentActiveCategory] || '#0284c7');
+        // A. 같은 라인 이어서 그리기 적용
+        if (extendingPipeTarget && extendingPipeTarget.pipe && extendingPipeTarget.pipe.category === category) {
+          const pipe = extendingPipeTarget.pipe;
+          if (extendingPipeTarget.isEnd) {
+            pipe.points = pipe.points.trim() + ' ' + ptsStr;
+          } else {
+            pipe.points = ptsStr + ' ' + pipe.points.trim();
+          }
+          extendingPipeTarget = null;
+          return;
+        }
 
-      const draftPipe = {
-        id: newId,
-        name: `${isDuct ? '공조 덕트' : '배관 선로'} (${(dist * 0.12).toFixed(1)}m)`,
-        shop: '공용 관로',
-        category: currentActiveCategory,
-        spec: isDuct ? '400x300' : '50A',
-        length: (dist * 0.12).toFixed(1) + ' m',
-        points: ptsStr,
-        color: color,
-        floor: currentFloor,
-        isDraft: true,
-        valve_open: true,
-        status: 'NORMAL'
-      };
+        // B. 신규 라인 생성
+        const p1 = chain[0];
+        const pLast = chain[chain.length - 1];
+        const dist = Math.hypot(pLast.x - p1.x, pLast.y - p1.y);
 
-      pipesData.push(draftPipe);
+        const newId = 'P-' + Date.now() + '_' + cIdx;
+        const isDuct = ['HVAC_SUPPLY', 'HVAC_EXHAUST', 'KITCHEN_EXHAUST'].includes(category);
+        const color = isDuct ? '#16a34a' : (PIPE_COLOR_MAP[category] || '#0284c7');
+
+        let defaultName = '배관 선로';
+        if (isDuct) defaultName = '공조 덕트';
+        else if (category === 'FIRE_ZONE') defaultName = '방화구역 선로';
+        else if (category === 'SMOKE_ZONE') defaultName = '제연구획 선로';
+
+        const draftPipe = {
+          id: newId,
+          name: `${defaultName} (${(dist * 0.12).toFixed(1)}m)`,
+          shop: '공용 관로',
+          category: category,
+          spec: isDuct ? '400x300' : (isFireOrSmoke ? '방화구획' : '50A'),
+          length: (dist * 0.12).toFixed(1) + ' m',
+          points: ptsStr,
+          color: color,
+          floor: currentFloor,
+          isDraft: true,
+          valve_open: true,
+          status: 'NORMAL'
+        };
+
+        pipesData.push(draftPipe);
+      });
+
+      extendingPipeTarget = null;
       saveLocalCache();
       renderPipes();
       renderPipesList();
 
       const cadStatus = document.getElementById('cadStatusText');
       if (cadStatus) {
-        cadStatus.innerText = terminatedByIntersection
-          ? `구역 경계에 닿아 라인이 끊어졌습니다. (선을 클릭하여 제원 수정 가능)`
-          : `라인이 그려졌습니다! 이어서 계속 그리거나 선을 클릭하여 제원을 등록하세요.`;
+        cadStatus.innerText = isFireOrSmoke
+          ? `방화/제연구획 선로가 등록되었습니다. (선을 클릭하여 제원 수정 가능)`
+          : `라인이 등록되었습니다 (매장 내부 및 외벽 외부 자동 제거됨).`;
       }
-      currentPipePoints = [];
+      showToast(isFireOrSmoke ? '방화/제연구획 선로가 등록되었습니다.' : '매장 내부 및 외벽 외부 선분이 제거되고 라인이 등록되었습니다.', 500);
     }
 
     // 도면 그리기 한 획 마침 (짝수 꼭지점 4/6/8 최소화 & 45도 각도 사선 다각형 완성)
@@ -2308,7 +2447,7 @@
       if (selectedGroup === 'GROUP_PIPE') return ['WATER_SUPPLY', 'DRAIN', 'SANITARY'].includes(category);
       if (selectedGroup === 'GROUP_DUCT') return ['HVAC_SUPPLY', 'HVAC_EXHAUST', 'KITCHEN_EXHAUST'].includes(category);
       if (selectedGroup === 'GROUP_ELEC') return ['ELEC_NORMAL', 'ELEC_EMERGENCY'].includes(category);
-      if (selectedGroup === 'GROUP_FIRE') return ['FIRE'].includes(category);
+      if (selectedGroup === 'GROUP_FIRE') return ['FIRE', 'FIRE_ZONE', 'SMOKE_ZONE'].includes(category);
       return true;
     }
 
@@ -2417,11 +2556,12 @@
         const isWarning = p.status === 'WARNING';
         const isClosed = p.valve_open === false;
         const isDuct = ['HVAC_SUPPLY', 'HVAC_EXHAUST', 'KITCHEN_EXHAUST'].includes(p.category);
+        const isFireOrSmoke = ['FIRE_ZONE', 'SMOKE_ZONE'].includes(p.category);
 
-        const strokeWidth = isDuct ? 17.5 : 3.5;
-        const strokeColor = isDuct ? '#16a34a' : (p.color || PIPE_COLOR_MAP[p.category] || '#0284c7');
+        const strokeWidth = isDuct ? 17.5 : (isFireOrSmoke ? 4.5 : 3.5);
+        const strokeColor = isDuct ? '#16a34a' : (isFireOrSmoke ? '#dc2626' : (p.color || PIPE_COLOR_MAP[p.category] || '#0284c7'));
         const strokeOpacity = isDuct ? 0.5 : (p.isDraft ? 0.85 : 1.0);
-        const strokeDash = p.isDraft ? '6 3' : (isEmergency ? '6 3' : (isClosed ? '3 6' : 'none'));
+        const strokeDash = isFireOrSmoke ? '8 4' : (p.isDraft ? '6 3' : (isEmergency ? '6 3' : (isClosed ? '3 6' : 'none')));
 
         let cls = 'pipe-path';
         if (isEmergency) cls += ' pipe-emergency';
