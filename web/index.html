@@ -37,7 +37,7 @@
       --border: #1f2937;
       --muted-foreground: #9ca3af;
       --cad-paper: #0c121d;
-      --cad-wall: #94a3b8;
+      --cad-wall: #f8fafc;
       --cad-inner-wall: #64748b;
       --cad-room-line: #475569;
       --cad-subline: #334155;
@@ -45,6 +45,14 @@
       --grid-line: rgba(148, 163, 184, 0.07);
       --shop-fill: #1e293b;
       --shop-border: #475569;
+    }
+
+    .cad-outer-wall {
+      stroke: var(--cad-wall, #0f172a);
+      transition: stroke 0.2s ease;
+    }
+    html.dark .cad-outer-wall {
+      stroke: #f8fafc !important;
     }
 
     .cad-grid {
@@ -443,6 +451,9 @@
               <!-- 7. 시설물 핀 레이어 -->
               <g id="pinLayer"></g>
 
+              <!-- 8. 다중 선택 및 하이라이트 오버레이 레이어 (Shift+클릭 다중 선택 시 표시) -->
+              <g id="selectionOverlayLayer"></g>
+
               <!-- 라인 그리기 시 실시간 점선 미리보기 -->
               <polyline id="tempPolyline" points="" stroke="#0284c7" stroke-width="3.5" fill="none" stroke-dasharray="6 3" class="hidden"/>
 
@@ -459,7 +470,7 @@
             <span class="flex items-center gap-1"><span class="w-3.5 h-2 rounded bg-[#16a34a] opacity-60"></span>덕트(급/배/주방 5배 녹색)</span>
             <span class="flex items-center gap-1"><span class="w-2.5 h-1 rounded bg-[#ea580c]"></span>전기(일반/비상)</span>
             <span class="flex items-center gap-1"><span class="w-2.5 h-1 rounded bg-[#dc2626]"></span>소방</span>
-            <span class="flex items-center gap-1 border-l border-[var(--border)] pl-2"><span class="w-2.5 h-1.5 bg-[#0f172a]"></span>외벽</span>
+            <span class="flex items-center gap-1 border-l border-[var(--border)] pl-2"><span class="w-2.5 h-1.5 bg-[#0f172a] dark:bg-[#f8fafc] border border-[var(--border)]"></span>외벽</span>
             <span class="flex items-center gap-1"><span class="w-3 h-1 border border-dashed border-red-600"></span>방화/제연구역</span>
           </div>
           <div class="font-mono text-[10px] sm:text-[11px] truncate pl-2" id="selectedFacilityDetails">정상 가동 중</div>
@@ -1381,11 +1392,10 @@
     function deleteStaff(staffId) {
       const target = staffList.find(s => s.id === staffId);
       if (!target || target.name === '시설소장') return;
-      if (confirm(`정말 [${target.name}] 직원을 삭제하시겠습니까?`)) {
-        staffList = staffList.filter(s => s.id !== staffId);
-        localStorage.setItem('avenuel_staff_list', JSON.stringify(staffList));
-        renderStaffList();
-      }
+      staffList = staffList.filter(s => s.id !== staffId);
+      localStorage.setItem('avenuel_staff_list', JSON.stringify(staffList));
+      renderStaffList();
+      showToast(`[${target.name}] 직원이 삭제되었습니다.`, 500);
     }
 
     // ==========================================
@@ -2016,6 +2026,28 @@
       // 마우스 다운
       vp.addEventListener('mousedown', (e) => {
         if (isSpacePressed) return; // 스페이스바 팬 모드 시 드로잉 차단
+
+        // Shift 키 누른 상태에서는 드로잉 대신 다중 선택 수행
+        if (e.shiftKey) {
+          const shopEl = e.target.closest('.shop-box');
+          const pipeEl = e.target.closest('.pipe-path');
+          const wallEl = e.target.closest('.cad-outer-wall');
+          if (shopEl) {
+            const id = shopEl.getAttribute('data-shop');
+            toggleSelectItem('shop', id);
+            e.stopPropagation();
+            return;
+          } else if (pipeEl) {
+            toggleSelectItem('pipe', pipeEl.id);
+            e.stopPropagation();
+            return;
+          } else if (wallEl && wallEl.id && wallEl.id !== 'baseOuterWall') {
+            toggleSelectItem('wall', wallEl.id);
+            e.stopPropagation();
+            return;
+          }
+        }
+
         const svgPt = getSvgPoint(e.clientX, e.clientY);
 
         // A. 라인그리기 모드 (도형 위 자유 그리기 허용)
@@ -2343,16 +2375,18 @@
       saveLocalCache();
       renderAll();
       cancelPipeDraw();
-      alert(`[${pipe.floor} / ${shop}] ${name} 등록 완료`);
+      showToast(`[${pipe.floor} / ${shop}] ${name} 등록 완료`, 500);
     }
 
     function deleteTargetPipe() {
       const pId = document.getElementById('modalTargetPipeId').value;
-      if (!confirm('해당 배관/덕트 선을 삭제하시겠습니까?')) return;
       pipesData = pipesData.filter(p => p.id !== pId);
+      if (typeof multiSelectedMap !== 'undefined') multiSelectedMap.delete(`pipe:${pId}`);
       saveLocalCache();
       renderAll();
       cancelPipeDraw();
+      if (typeof updateSelectionVisuals === 'function') updateSelectionVisuals();
+      showToast('해당 선로가 삭제되었습니다.', 500);
     }
 
     // ==========================================
@@ -2360,13 +2394,16 @@
     // ==========================================
     function openPlanObjectModal(objId) {
       if (currentUser.role === 'guest') return;
-      const shop = shopsData.find(s => s.id === objId || s.name === objId);
-      if (!shop) return;
+      let targetObj = shopsData.find(s => s.id === objId || s.name === objId);
+      if (!targetObj) {
+        targetObj = planObjectsData.find(o => o.id === objId || o.name === objId);
+      }
+      if (!targetObj) return;
 
-      document.getElementById('editPlanObjectId').value = shop.id || shop.name;
-      document.getElementById('editPlanObjectName').value = shop.name;
+      document.getElementById('editPlanObjectId').value = targetObj.id || targetObj.name;
+      document.getElementById('editPlanObjectName').value = targetObj.name || (targetObj.type === 'WALL' ? '외벽' : '도면구역');
 
-      const currentType = shop.zone_type || 'STORE';
+      const currentType = targetObj.zone_type || targetObj.type || 'STORE';
       const radios = document.getElementsByName('planObjType');
       radios.forEach(r => { r.checked = (r.value === currentType); });
 
@@ -2384,48 +2421,67 @@
       let newType = 'STORE';
       radios.forEach(r => { if (r.checked) newType = r.value; });
 
-      const shop = shopsData.find(s => s.id === targetId || s.name === targetId);
-      if (!shop) return;
+      let shop = shopsData.find(s => s.id === targetId || s.name === targetId);
+      let planObj = planObjectsData.find(o => o.id === targetId || o.name === targetId);
 
       // 매장으로 변경 시 다른 매장과의 겹침 검사
-      if (newType === 'STORE' && shop.polygon) {
-        const otherStores = shopsData.filter(s => (s.floor === currentFloor || (!s.floor && currentFloor === '2F')) && s.id !== shop.id && s.name !== shop.name && (s.zone_type === 'STORE' || !s.zone_type) && s.polygon);
+      const testPoly = (shop && shop.polygon) || (planObj && planObj.polygon);
+      if (newType === 'STORE' && testPoly) {
+        const otherStores = shopsData.filter(s => (s.floor === currentFloor || (!s.floor && currentFloor === '2F')) && s.id !== targetId && s.name !== targetId && (s.zone_type === 'STORE' || !s.zone_type) && s.polygon);
         for (const store of otherStores) {
-          if (checkPolygonOverlap(shop.polygon, store.polygon)) {
+          if (checkPolygonOverlap(testPoly, store.polygon)) {
             showToast('기존 매장 구역과 겹치므로 매장으로 설정할 수 없습니다.', 500);
             return;
           }
         }
       }
 
-      const oldName = shop.name;
-      shop.name = newName || oldName;
-      shop.zone_type = newType;
+      const oldName = shop ? shop.name : (planObj ? planObj.name : '');
+      const finalName = newName || oldName || '도면구역';
 
-      const planObj = planObjectsData.find(o => o.id === targetId || o.name === oldName);
+      if (shop) {
+        shop.name = finalName;
+        shop.zone_type = newType;
+      } else if (newType !== 'WALL' && planObj) {
+        // 외벽에서 다른 일반 구역으로 변경된 경우 shopsData에 추가
+        shopsData.push({
+          id: planObj.id,
+          name: finalName,
+          floor: planObj.floor || currentFloor,
+          zone_type: newType,
+          polygon: planObj.polygon
+        });
+      }
+
       if (planObj) {
-        planObj.name = shop.name;
+        planObj.name = finalName;
         planObj.type = newType;
       }
 
       pipesData.forEach(p => {
-        if (p.shop === oldName && p.floor === currentFloor) p.shop = shop.name;
+        if (p.shop === oldName && p.floor === currentFloor) p.shop = finalName;
       });
 
       saveLocalCache();
       renderAll();
       closePlanObjectModal();
-      showToast(`[${shop.name}] 속성이 ${PLAN_OBJ_META[newType]?.name || newType}(으)로 저장되었습니다.`, 500);
+      if (typeof updateSelectionVisuals === 'function') updateSelectionVisuals();
+      showToast(`[${finalName}] 속성이 ${PLAN_OBJ_META[newType]?.name || newType}(으)로 저장되었습니다.`, 500);
     }
 
     function deletePlanObject() {
       const targetId = document.getElementById('editPlanObjectId').value;
-      if (!confirm('해당 도면 도형을 삭제하시겠습니까?')) return;
       shopsData = shopsData.filter(s => !(s.id === targetId || s.name === targetId));
       planObjectsData = planObjectsData.filter(o => !(o.id === targetId || o.name === targetId));
+      if (typeof multiSelectedMap !== 'undefined') {
+        multiSelectedMap.delete(`shop:${targetId}`);
+        multiSelectedMap.delete(`wall:${targetId}`);
+      }
       saveLocalCache();
       renderAll();
       closePlanObjectModal();
+      if (typeof updateSelectionVisuals === 'function') updateSelectionVisuals();
+      showToast('도면 도형이 삭제되었습니다.', 500);
     }
 
     // ==========================================
@@ -2454,6 +2510,137 @@
     // ==========================================
     // 13. 전체 도면 렌더링
     // ==========================================
+    // 13. 개체 선택 및 다중 선택 (Shift+클릭) 시스템
+    // ==========================================
+    let multiSelectedMap = new Map();
+
+    function getEntityData(type, id) {
+      if (type === 'pipe') {
+        return pipesData.find(p => p.id === id);
+      } else if (type === 'shop') {
+        return shopsData.find(s => s.id === id || s.name === id) || planObjectsData.find(o => o.id === id || o.name === id);
+      } else if (type === 'wall' || type === 'plan') {
+        return planObjectsData.find(o => o.id === id || o.name === id) || shopsData.find(s => s.id === id || s.name === id);
+      }
+      return null;
+    }
+
+    function toggleSelectItem(type, id, forceAdd = false) {
+      const item = getEntityData(type, id);
+      if (!item) return;
+      const key = `${type}:${id}`;
+      if (multiSelectedMap.has(key) && !forceAdd) {
+        multiSelectedMap.delete(key);
+      } else {
+        multiSelectedMap.set(key, { type, id, item });
+      }
+      updateSelectionVisuals();
+      showToast(`${multiSelectedMap.size}개 개체 선택됨`, 500);
+    }
+
+    function selectSingleItem(type, id) {
+      const item = getEntityData(type, id);
+      if (!item) return;
+      multiSelectedMap.clear();
+      multiSelectedMap.set(`${type}:${id}`, { type, id, item });
+      updateSelectionVisuals();
+    }
+
+    function clearSelection() {
+      if (multiSelectedMap.size === 0) return;
+      multiSelectedMap.clear();
+      updateSelectionVisuals();
+    }
+
+    function updateSelectionVisuals() {
+      const overlay = document.getElementById('selectionOverlayLayer');
+      if (!overlay) return;
+
+      if (multiSelectedMap.size === 0) {
+        overlay.innerHTML = '';
+        return;
+      }
+
+      let html = '';
+      multiSelectedMap.forEach(({ type, id, item }) => {
+        if (type === 'pipe') {
+          if (item && item.points) {
+            html += `<polyline points="${item.points}" fill="none" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.65" pointer-events="none"/>`;
+            html += `<polyline points="${item.points}" fill="none" stroke="#0284c7" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>`;
+          }
+        } else {
+          // shop, wall, planObject
+          let poly = item.polygon;
+          if (!poly || poly.length < 3) {
+            if (type === 'shop') {
+              const idx = shopsData.indexOf(item);
+              const slot = SHOP_SLOTS[idx >= 0 ? idx % SHOP_SLOTS.length : 0];
+              if (slot) {
+                poly = [
+                  { x: slot.x, y: slot.y },
+                  { x: slot.x + slot.width, y: slot.y },
+                  { x: slot.x + slot.width, y: slot.y + slot.height },
+                  { x: slot.x, y: slot.y + slot.height }
+                ];
+              }
+            }
+          }
+          if (poly && poly.length >= 2) {
+            const ptsStr = poly.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join(' ');
+            html += `<polygon points="${ptsStr}" fill="rgba(56, 189, 248, 0.18)" stroke="#0284c7" stroke-width="3" stroke-dasharray="6 3" pointer-events="none"/>`;
+            poly.forEach(p => {
+              html += `<rect x="${Math.round(p.x) - 4}" y="${Math.round(p.y) - 4}" width="8" height="8" fill="#ffffff" stroke="#0284c7" stroke-width="2" pointer-events="none"/>`;
+            });
+          }
+        }
+      });
+      overlay.innerHTML = html;
+    }
+
+    function handleWallClick(e, wallId) {
+      if (e.shiftKey) {
+        toggleSelectItem('wall', wallId);
+        e.stopPropagation();
+        return;
+      }
+      if (isMapEditMode || isDrawingPlanMode) {
+        selectSingleItem('wall', wallId);
+        openPlanObjectModal(wallId);
+      } else {
+        selectSingleItem('wall', wallId);
+      }
+    }
+
+    function handleShopClick(e, shopId) {
+      if (e.shiftKey) {
+        toggleSelectItem('shop', shopId);
+        e.stopPropagation();
+        return;
+      }
+      if (isMapEditMode || isDrawingPlanMode) {
+        selectSingleItem('shop', shopId);
+        openPlanObjectModal(shopId);
+      } else {
+        selectSingleItem('shop', shopId);
+        selectStore(shopId);
+      }
+    }
+
+    function handlePipeClick(e, pipeId) {
+      if (e.shiftKey) {
+        toggleSelectItem('pipe', pipeId);
+        e.stopPropagation();
+        return;
+      }
+      if (isMapEditMode || isDrawingPipeMode) {
+        selectSingleItem('pipe', pipeId);
+        openPipeRegisterModal(pipeId);
+      } else {
+        selectSingleItem('pipe', pipeId);
+      }
+    }
+
+    // ==========================================
     function renderAll() {
       renderWallAndSpecialZones();
       renderShopsLayer();
@@ -2462,20 +2649,24 @@
       renderFacilities();
       renderPipesList();
       renderFloorButtons();
+      updateSelectionVisuals();
     }
 
-    // 외벽 & 방화구역/제연구역 렌더링
+    // 외벽 & 방화구역/제연구역 렌더링 (외벽 속성 라인은 색 반전 시 함께 반전)
     function renderWallAndSpecialZones() {
       const wallLayer = document.getElementById('wallLayer');
       const fzLayer = document.getElementById('fireSmokeZoneLayer');
       if (!wallLayer || !fzLayer) return;
 
+      const isDark = document.documentElement.classList.contains('dark') || currentTheme === 'dark';
+      const wallStroke = isDark ? '#f8fafc' : '#0f172a';
+
       const userWalls = planObjectsData.filter(o => o.floor === currentFloor && o.type === 'WALL');
-      let wallSvg = '<rect id="baseOuterWall" x="20" y="20" width="900" height="560" fill="none" stroke="#0f172a" stroke-width="6"/>';
+      let wallSvg = `<rect id="baseOuterWall" class="cad-outer-wall" x="20" y="20" width="900" height="560" fill="none" stroke="${wallStroke}" stroke-width="6"/>`;
       userWalls.forEach(w => {
         if (w.polygon && w.polygon.length >= 2) {
           const ptsStr = w.polygon.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join(' ');
-          wallSvg += `<polygon points="${ptsStr}" fill="none" stroke="#0f172a" stroke-width="6" class="cursor-pointer" onclick="openPlanObjectModal('${w.id}')"/>`;
+          wallSvg += `<polygon id="${w.id}" data-id="${w.id}" data-type="wall" points="${ptsStr}" fill="none" stroke="${wallStroke}" stroke-width="6" class="cad-outer-wall cursor-pointer" onclick="handleWallClick(event, '${w.id}')"/>`;
         }
       });
       wallLayer.innerHTML = wallSvg;
@@ -2485,7 +2676,7 @@
         if (z.polygon && z.polygon.length >= 3) {
           const ptsStr = z.polygon.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join(' ');
           return `
-            <polygon points="${ptsStr}" fill="rgba(220, 38, 38, 0.08)" stroke="#dc2626" stroke-width="4" stroke-dasharray="8 4" class="cursor-pointer" onclick="openPlanObjectModal('${z.id || z.name}')"/>
+            <polygon points="${ptsStr}" fill="rgba(220, 38, 38, 0.08)" stroke="#dc2626" stroke-width="4" stroke-dasharray="8 4" class="cursor-pointer" onclick="handleShopClick(event, '${z.id || z.name}')"/>
             <text x="${z.polygon[0].x + 10}" y="${z.polygon[0].y + 15}" font-size="10" font-weight="bold" fill="#dc2626">[${z.zone_type === 'FIRE_ZONE' ? '방화구역' : '제연구역'}] ${z.name}</text>
           `;
         }
@@ -2511,9 +2702,7 @@
         const rectStroke = isSelected ? '#0284c7' : (typeMeta.border || 'var(--shop-border)');
         const strokeWidth = isSelected ? '3' : (typeMeta.strokeWidth || '2');
 
-        const clickAction = (isMapEditMode || isDrawingPlanMode)
-          ? `openPlanObjectModal('${s.id || s.name}')`
-          : `selectStore('${s.name}')`;
+        const clickAction = `handleShopClick(event, '${s.id || s.name}')`;
 
         if (s.polygon && s.polygon.length >= 3) {
           const ptsStr = s.polygon.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join(' ');
@@ -2569,7 +2758,7 @@
         if (isClosed) cls += ' pipe-closed';
 
         return `
-          <polyline id="${p.id}" class="${cls}" data-shop="${p.shop}" data-category="${p.category}" points="${p.points}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-opacity="${strokeOpacity}" stroke-dasharray="${strokeDash}" fill="none" onclick="openPipeRegisterModal('${p.id}')"/>
+          <polyline id="${p.id}" class="${cls}" data-shop="${p.shop}" data-category="${p.category}" points="${p.points}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-opacity="${strokeOpacity}" stroke-dasharray="${strokeDash}" fill="none" onclick="handlePipeClick(event, '${p.id}')"/>
         `;
       }).join('');
     }
@@ -2813,8 +3002,10 @@
 
     function deleteCurrentFloor() {
       if (currentUser.role === 'guest') return;
-      if (floorList.length <= 1) return;
-      if (!confirm(`현재 보고 있는 [${currentFloor}] 층을 삭제하시겠습니까?`)) return;
+      if (floorList.length <= 1) {
+        showToast('최소 1개 층은 유지되어야 합니다.', 500);
+        return;
+      }
 
       const targetFloor = currentFloor;
       floorList = floorList.filter(f => f !== targetFloor);
@@ -2824,9 +3015,12 @@
       pipesData = pipesData.filter(p => p.floor !== targetFloor);
       facilitiesData = facilitiesData.filter(f => f.floor !== targetFloor);
       planObjectsData = planObjectsData.filter(o => o.floor !== targetFloor);
+      if (typeof multiSelectedMap !== 'undefined') multiSelectedMap.clear();
 
       saveLocalCache();
       changeFloor(floorList[0]);
+      if (typeof updateSelectionVisuals === 'function') updateSelectionVisuals();
+      showToast(`[${targetFloor}] 층이 삭제되었습니다.`, 500);
     }
 
     function updateSceneTransform() {
@@ -2913,7 +3107,73 @@
       }, { passive: false });
     }
 
-    // 스페이스바 팬 모드 리스너 (그리기 중 스페이스바 누르면 손모양 커서 및 화면 이동)
+    // ==========================================
+    // 14. 키보드 단축키 및 Delete 키 삭제 시스템
+    // ==========================================
+    function deleteSelectedEntities() {
+      if (currentUser.role === 'guest') {
+        showToast('게스트는 삭제 권한이 없습니다.', 500);
+        return;
+      }
+
+      // 1. 다중/단일 선택된 개체가 있는 경우 확인 팝업 없이 즉시 일괄 삭제
+      if (multiSelectedMap && multiSelectedMap.size > 0) {
+        const count = multiSelectedMap.size;
+        multiSelectedMap.forEach(({ type, id }) => {
+          if (type === 'pipe') {
+            pipesData = pipesData.filter(p => p.id !== id);
+          } else if (type === 'shop') {
+            shopsData = shopsData.filter(s => !(s.id === id || s.name === id));
+            planObjectsData = planObjectsData.filter(o => !(o.id === id || o.name === id));
+          } else if (type === 'wall' || type === 'plan') {
+            planObjectsData = planObjectsData.filter(o => !(o.id === id || o.name === id));
+            shopsData = shopsData.filter(s => !(s.id === id || s.name === id));
+          }
+        });
+        multiSelectedMap.clear();
+        saveLocalCache();
+        renderAll();
+        updateSelectionVisuals();
+        closePlanObjectModal();
+        cancelPipeDraw();
+        showToast(`${count}개 개체가 삭제되었습니다.`, 500);
+        return;
+      }
+
+      // 2. 선택된 개체가 없을 때 모드별 가장 최근 개체 즉시 삭제
+      if (isDrawingPipeMode) {
+        const curPipes = pipesData.filter(p => p.floor === currentFloor || (!p.floor && currentFloor === '2F'));
+        if (curPipes.length > 0) {
+          const last = curPipes[curPipes.length - 1];
+          pipesData = pipesData.filter(p => p.id !== last.id);
+          saveLocalCache();
+          renderAll();
+          showToast('마지막으로 그린 선로가 삭제되었습니다.', 500);
+        }
+      } else if (isDrawingPlanMode) {
+        const curPlans = planObjectsData.filter(o => o.floor === currentFloor || (!o.floor && currentFloor === '2F'));
+        if (curPlans.length > 0) {
+          const last = curPlans[curPlans.length - 1];
+          planObjectsData = planObjectsData.filter(o => o.id !== last.id);
+          shopsData = shopsData.filter(s => !(s.id === last.id || s.name === last.id));
+          saveLocalCache();
+          renderAll();
+          showToast('마지막으로 그린 도면 도형이 삭제되었습니다.', 500);
+        }
+      } else if (isMapEditMode) {
+        if (selectedStore) {
+          const target = selectedStore;
+          shopsData = shopsData.filter(s => s.name !== target);
+          planObjectsData = planObjectsData.filter(o => o.name !== target);
+          selectedStore = null;
+          saveLocalCache();
+          renderAll();
+          showToast(`[${target}] 구역이 삭제되었습니다.`, 500);
+        }
+      }
+    }
+
+    // 스페이스바 팬 모드 & Delete 키 즉시 삭제 리스너
     let spaceListenersInitialized = false;
     function initSpacePanListeners() {
       if (spaceListenersInitialized) return;
@@ -2923,6 +3183,16 @@
         const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
         if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
 
+        // Delete 또는 Del 키 누를 시 삭제 (확인 팝업 없이 즉시 삭제)
+        if (e.key === 'Delete' || e.key === 'Del') {
+          if (isDrawingPipeMode || isDrawingPlanMode || isMapEditMode || (multiSelectedMap && multiSelectedMap.size > 0)) {
+            e.preventDefault();
+            deleteSelectedEntities();
+            return;
+          }
+        }
+
+        // 스페이스바 팬 모드 활성화
         if (e.code === 'Space' && !e.repeat) {
           e.preventDefault();
           isSpacePressed = true;
@@ -2946,10 +3216,10 @@
     }
 
     // ==========================================
-    // 맵 편집 모드: 라인 및 도면 도형 드래그 이동 기능
+    // 맵 편집 모드: 라인, 외벽, 도면 도형 다중 선택 및 드래그 이동 기능
     // ==========================================
     let isDraggingMapItem = false;
-    let dragItemInfo = null;
+    let multiDragSnapshot = [];
     let dragStartClientX = 0;
     let dragStartClientY = 0;
     let dragStartSvgPt = null;
@@ -2968,109 +3238,169 @@
       }
 
       vp.addEventListener('mousedown', (e) => {
-        if (!isMapEditMode) return;
+        if (isSpacePressed) return;
+        // 맵 편집 모드이거나 이미 선택된 개체들이 있거나 Shift 클릭인 경우 인터랙션 시작
+        const hasSelection = multiSelectedMap && multiSelectedMap.size > 0;
+        if (!isMapEditMode && !hasSelection && !e.shiftKey) return;
+
         const shopEl = e.target.closest('.shop-box');
         const pipeEl = e.target.closest('.pipe-path');
+        const wallEl = e.target.closest('.cad-outer-wall');
 
-        if (!shopEl && !pipeEl) return;
+        if (!shopEl && !pipeEl && !wallEl) {
+          if (!e.shiftKey && (isMapEditMode || hasSelection)) {
+            clearSelection();
+          }
+          return;
+        }
+
+        let clickedType = null;
+        let clickedId = null;
+        let clickedItem = null;
+
+        if (shopEl) {
+          clickedType = 'shop';
+          clickedId = shopEl.getAttribute('data-shop');
+          clickedItem = shopsData.find(s => s.name === clickedId || s.id === clickedId);
+        } else if (pipeEl) {
+          clickedType = 'pipe';
+          clickedId = pipeEl.id;
+          clickedItem = pipesData.find(p => p.id === clickedId);
+        } else if (wallEl && wallEl.id !== 'baseOuterWall') {
+          clickedType = 'wall';
+          clickedId = wallEl.id;
+          clickedItem = planObjectsData.find(o => o.id === clickedId);
+        }
+
+        if (!clickedItem) return;
+
+        const clickedKey = `${clickedType}:${clickedId}`;
+
+        if (e.shiftKey) {
+          // Shift + 클릭: 다중 선택 토글
+          toggleSelectItem(clickedType, clickedId);
+        } else {
+          // 일반 클릭: 기존 선택에 포함되어 있지 않다면 단일 선택으로 전환
+          if (!multiSelectedMap.has(clickedKey)) {
+            selectSingleItem(clickedType, clickedId);
+          }
+        }
 
         dragStartClientX = e.clientX;
         dragStartClientY = e.clientY;
         dragStartSvgPt = getSvgPt(e.clientX, e.clientY);
 
-        if (shopEl) {
-          const shopName = shopEl.getAttribute('data-shop');
-          const shop = shopsData.find(s => s.name === shopName || s.id === shopName);
-          if (shop) {
-            // 다각형이 없는 슬롯 사각형인 경우 기본 4개 꼭지점 다각형으로 초기화
-            if (!shop.polygon || shop.polygon.length < 3) {
-              const idx = shopsData.indexOf(shop);
-              const slot = SHOP_SLOTS[idx % SHOP_SLOTS.length];
-              shop.polygon = [
-                { x: slot.x, y: slot.y },
-                { x: slot.x + slot.width, y: slot.y },
-                { x: slot.x + slot.width, y: slot.y + slot.height },
-                { x: slot.x, y: slot.y + slot.height }
-              ];
+        // 다중 드래그 스냅샷 구성
+        multiDragSnapshot = [];
+        multiSelectedMap.forEach(sel => {
+          if (sel.type === 'shop' || sel.type === 'wall') {
+            const it = sel.item;
+            if (!it.polygon || it.polygon.length < 3) {
+              const idx = shopsData.indexOf(it);
+              const slot = SHOP_SLOTS[idx >= 0 ? idx % SHOP_SLOTS.length : 0];
+              if (slot) {
+                it.polygon = [
+                  { x: slot.x, y: slot.y },
+                  { x: slot.x + slot.width, y: slot.y },
+                  { x: slot.x + slot.width, y: slot.y + slot.height },
+                  { x: slot.x, y: slot.y + slot.height }
+                ];
+              }
             }
-            dragItemInfo = {
-              type: 'shop',
-              item: shop,
-              origPolygon: shop.polygon.map(p => ({ ...p })),
-              el: shopEl
-            };
-            isDraggingMapItem = true;
-            e.stopPropagation();
-          }
-        } else if (pipeEl) {
-          const pipe = pipesData.find(p => p.id === pipeEl.id);
-          if (pipe) {
-            const pts = pipe.points.trim().split(' ').map(s => {
+            if (it.polygon && it.polygon.length >= 2) {
+              multiDragSnapshot.push({
+                type: sel.type,
+                item: it,
+                origPolygon: it.polygon.map(p => ({ x: p.x, y: p.y })),
+                el: sel.type === 'shop' 
+                  ? document.querySelector(`.shop-box[data-shop="${it.name || it.id}"]`)
+                  : document.getElementById(it.id)
+              });
+            }
+          } else if (sel.type === 'pipe') {
+            const it = sel.item;
+            const pts = (it.points || '').trim().split(' ').map(s => {
               const [x, y] = s.split(',').map(Number);
               return { x, y };
             });
-            dragItemInfo = {
+            multiDragSnapshot.push({
               type: 'pipe',
-              item: pipe,
+              item: it,
               origPoints: pts,
-              el: pipeEl
-            };
-            isDraggingMapItem = true;
-            e.stopPropagation();
+              el: document.getElementById(it.id)
+            });
           }
-        }
+        });
+
+        isDraggingMapItem = true;
+        e.stopPropagation();
       });
 
       window.addEventListener('mousemove', (e) => {
-        if (!isMapEditMode || !isDraggingMapItem || !dragItemInfo) return;
+        if (!isDraggingMapItem || multiDragSnapshot.length === 0) return;
         const currSvgPt = getSvgPt(e.clientX, e.clientY);
         const dx = currSvgPt.x - dragStartSvgPt.x;
         const dy = currSvgPt.y - dragStartSvgPt.y;
 
-        if (dragItemInfo.type === 'shop') {
-          const shop = dragItemInfo.item;
-          shop.polygon = dragItemInfo.origPolygon.map(p => ({
-            x: Math.round(p.x + dx),
-            y: Math.round(p.y + dy)
-          }));
-          const planObj = planObjectsData.find(o => o.id === shop.id || o.name === shop.name);
-          if (planObj) planObj.polygon = shop.polygon;
+        multiDragSnapshot.forEach(snap => {
+          if (snap.type === 'shop' || snap.type === 'wall') {
+            snap.item.polygon = snap.origPolygon.map(p => ({
+              x: Math.round(p.x + dx),
+              y: Math.round(p.y + dy)
+            }));
+            if (snap.type === 'shop') {
+              const planObj = planObjectsData.find(o => o.id === snap.item.id || o.name === snap.item.name);
+              if (planObj) planObj.polygon = snap.item.polygon;
+            }
 
-          // 실시간 화면 업데이트
-          const polyEl = dragItemInfo.el.querySelector('polygon') || dragItemInfo.el.querySelector('rect');
-          if (polyEl && polyEl.tagName.toLowerCase() === 'polygon') {
-            polyEl.setAttribute('points', shop.polygon.map(p => `${p.x},${p.y}`).join(' '));
+            if (snap.el) {
+              const polyEl = (snap.el.tagName && snap.el.tagName.toLowerCase() === 'polygon')
+                ? snap.el
+                : (snap.el.querySelector('polygon') || snap.el.querySelector('rect'));
+              if (polyEl && polyEl.tagName && polyEl.tagName.toLowerCase() === 'polygon') {
+                polyEl.setAttribute('points', snap.item.polygon.map(p => `${p.x},${p.y}`).join(' '));
+              }
+              const textEls = snap.el.querySelectorAll('text');
+              if (textEls.length > 0) {
+                const cx = Math.round(snap.item.polygon.reduce((sum, p) => sum + p.x, 0) / snap.item.polygon.length);
+                const cy = Math.round(snap.item.polygon.reduce((sum, p) => sum + p.y, 0) / snap.item.polygon.length);
+                if (textEls[0]) { textEls[0].setAttribute('x', cx); textEls[0].setAttribute('y', cy); }
+                if (textEls[1]) { textEls[1].setAttribute('x', cx); textEls[1].setAttribute('y', cy + 16); }
+              }
+            }
+          } else if (snap.type === 'pipe') {
+            const movedPts = snap.origPoints.map(p => `${Math.round(p.x + dx)},${Math.round(p.y + dy)}`);
+            snap.item.points = movedPts.join(' ');
+            if (snap.el) {
+              snap.el.setAttribute('points', snap.item.points);
+            }
           }
-          const textEls = dragItemInfo.el.querySelectorAll('text');
-          const cx = Math.round(shop.polygon.reduce((sum, p) => sum + p.x, 0) / shop.polygon.length);
-          const cy = Math.round(shop.polygon.reduce((sum, p) => sum + p.y, 0) / shop.polygon.length);
-          if (textEls[0]) { textEls[0].setAttribute('x', cx); textEls[0].setAttribute('y', cy); }
-          if (textEls[1]) { textEls[1].setAttribute('x', cx); textEls[1].setAttribute('y', cy + 16); }
-        } else if (dragItemInfo.type === 'pipe') {
-          const pipe = dragItemInfo.item;
-          const movedPts = dragItemInfo.origPoints.map(p => `${Math.round(p.x + dx)},${Math.round(p.y + dy)}`);
-          pipe.points = movedPts.join(' ');
-          dragItemInfo.el.setAttribute('points', pipe.points);
-        }
+        });
+
+        updateSelectionVisuals();
       });
 
       window.addEventListener('mouseup', (e) => {
-        if (!isMapEditMode || !isDraggingMapItem || !dragItemInfo) return;
+        if (!isDraggingMapItem) return;
         const dist = Math.hypot(e.clientX - dragStartClientX, e.clientY - dragStartClientY);
-        const itemInfo = dragItemInfo;
         isDraggingMapItem = false;
-        dragItemInfo = null;
+        const count = multiDragSnapshot.length;
+        multiDragSnapshot = [];
 
         if (dist >= 5) {
           saveLocalCache();
           renderAll();
-          showToast('객체 위치가 이동되었습니다.', 500);
+          updateSelectionVisuals();
+          showToast(`${count}개 개체 위치가 이동되었습니다.`, 500);
         } else {
-          // 단순 클릭 시 기존 모달 오픈
-          if (itemInfo.type === 'shop') {
-            openPlanObjectModal(itemInfo.item.id || itemInfo.item.name);
-          } else if (itemInfo.type === 'pipe') {
-            openPipeRegisterModal(itemInfo.item.id);
+          // 이동 없는 단순 클릭: Shift 키가 아니었고 맵 편집 모드였으며 단일 개체인 경우 모달 오픈
+          if (!e.shiftKey && isMapEditMode && multiSelectedMap.size === 1) {
+            const single = Array.from(multiSelectedMap.values())[0];
+            if (single.type === 'shop' || single.type === 'wall') {
+              openPlanObjectModal(single.id);
+            } else if (single.type === 'pipe') {
+              openPipeRegisterModal(single.id);
+            }
           }
         }
       });
@@ -3319,6 +3649,8 @@
         document.getElementById('themeToggleText').innerText = '어두운 테마';
       }
       renderShopsLayer();
+      renderWallAndSpecialZones(); // 색 반전 시 외벽 속성 라인 함께 반전 렌더링
+      if (typeof updateSelectionVisuals === 'function') updateSelectionVisuals();
     }
 
     function toggleMobileSidebar(targetTab) {
