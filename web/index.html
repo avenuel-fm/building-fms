@@ -69,7 +69,7 @@
       cursor: pointer;
       transition: all 0.2s ease;
     }
-    .shop-box:hover rect, .shop-box:active rect, .shop-box:hover path, .shop-box:active path {
+    .shop-box:hover rect, .shop-box:active rect, .shop-box:hover polygon, .shop-box:active polygon {
       stroke: #0284c7;
       stroke-width: 2.5px;
     }
@@ -111,12 +111,12 @@
     }
 
     /* 맵 편집 모드 시각화 */
-    .map-edit-active .shop-box rect, .map-edit-active .shop-box path {
+    .map-edit-active .shop-box rect, .map-edit-active .shop-box polygon {
       stroke-dasharray: 4 2;
       stroke-width: 2.5px !important;
       cursor: pointer;
     }
-    .map-edit-active .shop-box:hover rect, .map-edit-active .shop-box:hover path {
+    .map-edit-active .shop-box:hover rect, .map-edit-active .shop-box:hover polygon {
       stroke: #f97316 !important;
       fill: rgba(249, 115, 22, 0.15) !important;
     }
@@ -156,7 +156,7 @@
             <span>실시간</span>
           </span>
 
-          <!-- 게스트 남은 시간 카운트다운 뱃지 (1시간 자동 로그아웃) -->
+          <!-- 게스트 남은 시간 카운트다운 뱃지 -->
           <span id="guestTimerBadge" class="hidden items-center gap-1 px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-mono font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 shrink-0" title="게스트 계정: 1시간 후 자동 로그아웃">
             <svg class="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span id="guestTimerText">59:59</span>
@@ -164,7 +164,7 @@
 
           <!-- 활성 모드 표시 뱃지 -->
           <span id="activeModeBadge" class="hidden items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 shrink-0">
-            <span id="activeModeText">그리기 모드</span>
+            <span id="activeModeText">라인 그리기 활성</span>
           </span>
 
           <!-- 오프라인 상태 뱃지 (PWA) -->
@@ -249,7 +249,7 @@
               <span class="text-xs font-semibold text-[var(--muted-foreground)] uppercase">층 선택</span>
               <span class="text-[11px] font-mono text-[var(--muted-foreground)]" id="currentFloorLabel">2F 명품관</span>
             </div>
-            <!-- 직원/관리자 전용 층 추가/삭제 버튼 -->
+            <!-- 층 추가/삭제 버튼 -->
             <div id="floorEditControls" class="flex items-center gap-1">
               <button onclick="openAddFloorModal()" class="px-1.5 py-0.5 text-[10px] rounded border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 font-semibold" title="새로운 층 추가">+ 층 추가</button>
               <button onclick="deleteCurrentFloor()" class="px-1.5 py-0.5 text-[10px] rounded border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 font-semibold" title="현재 선택된 층 삭제">- 층 삭제</button>
@@ -258,7 +258,7 @@
           <div class="grid grid-cols-4 gap-1.5" id="floorButtonGroup"></div>
         </div>
 
-        <!-- 설비 분류 라디오 필터 (그룹화 묶음: 전체, 배관, 덕트, 전기, 소방) -->
+        <!-- 설비 분류 라디오 필터 (그룹화 묶음) -->
         <div class="p-3 border-b border-[var(--border)] bg-[var(--card)]">
           <span class="text-xs font-semibold text-[var(--muted-foreground)] block mb-1.5">계통 그룹 필터</span>
           <div class="grid grid-cols-1 gap-1 text-[11px]">
@@ -305,7 +305,7 @@
         <!-- 탭 3: 시설물 목록 -->
         <div id="facilityListContainer" class="hidden flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1.5"></div>
 
-        <!-- 편집 및 관리자/직원 도구 -->
+        <!-- 편집 및 관리 도구 -->
         <div id="editorActionSection" class="p-2.5 border-t border-[var(--border)] bg-[var(--card)] space-y-1.5">
           <div class="text-[10px] font-semibold text-[var(--muted-foreground)] flex items-center justify-between">
             <span>도면 편집 & 관리</span>
@@ -313,12 +313,12 @@
           </div>
           
           <div class="grid grid-cols-2 gap-1.5">
-            <!-- 1. '그리기' 버튼 (연속 그리기, 팝업 없음, 배관/덕트) -->
+            <!-- 1. '라인그리기' 버튼 (연속 그리기, 5mm직선/사선, 금지구역 자동 끊김, 같은 속성 이어그리기) -->
             <button onclick="toggleDrawingPipe()" id="drawPipeBtn" class="py-1.5 px-1 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-semibold text-xs text-center hover:opacity-90 truncate transition-colors">
-              그리기
+              라인그리기
             </button>
             
-            <!-- 2. '도면 그리기' 버튼 (건물외벽, 매장, 방화구역 직접 그리기) -->
+            <!-- 2. '도면 그리기' 버튼 (곡선인식 제거, 5mm직선/사선, 내부선 삭제 다각형 완성) -->
             <button onclick="toggleDrawingPlan()" id="drawPlanBtn" class="py-1.5 px-1 border border-indigo-300 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 rounded font-semibold text-xs text-center truncate transition-colors">
               도면 그리기
             </button>
@@ -374,7 +374,7 @@
           <svg id="cadSvg" class="w-full h-full select-none" viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid meet">
             <g id="sceneGroup" transform="translate(40, 30) scale(0.92)">
               
-              <!-- 1. 건물 외벽 (기본 외벽 및 사용자 직접 그린 외벽: 검은색 두꺼운 실선) -->
+              <!-- 1. 건물 외벽 (검은색 두꺼운 실선: stroke-width 6px) -->
               <g id="wallLayer">
                 <rect id="baseOuterWall" x="20" y="20" width="900" height="560" fill="none" stroke="#0f172a" stroke-width="6"/>
               </g>
@@ -401,10 +401,10 @@
               <rect x="380" y="450" width="180" height="130" fill="var(--sidebar)" stroke="var(--cad-wall)" stroke-width="2"/>
               <text id="coreTextBottom" x="470" y="520" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--muted-foreground)">EPS / TPS / 방재실</text>
 
-              <!-- 4. 특수 방화구역 / 제연구역 레이어 (두꺼운 붉은색 점선) -->
+              <!-- 4. 특수 방화구역 / 제연구역 레이어 (두꺼운 붉은색 점선: stroke-width 4px, dash 8 4) -->
               <g id="fireSmokeZoneLayer"></g>
 
-              <!-- 5. 구역 및 매장 레이어 (직접 그린 매장 포함, 매장 위로는 배관 그리기 불가) -->
+              <!-- 5. 구역 및 매장 레이어 (매장, EPS, 공조실, PS, AV-알람벨브, PD 위로는 라인 그리기 불가) -->
               <g id="shopsLayer"></g>
 
               <!-- 메인 복도 공급 라인 -->
@@ -415,17 +415,17 @@
                 <path d="M 460 290 L 900 290" stroke="#ea580c" stroke-width="2.5" fill="none" opacity="0.35" stroke-dasharray="6 3"/>
               </g>
 
-              <!-- 6. 배관 및 덕트 레이어 (덕트는 두께 5배, 투명도 50%, 녹색) -->
+              <!-- 6. 배관 및 덕트 레이어 (덕트는 두께 5배=17.5px, 투명도 50%, 녹색) -->
               <g id="pipePathLayer"></g>
 
               <!-- 7. 시설물 핀 레이어 -->
               <g id="pinLayer"></g>
 
-              <!-- 배관 그리기 시 실시간 점선 미리보기 (사선 불가, 직각 꺾임) -->
+              <!-- 라인 그리기 시 실시간 점선 미리보기 -->
               <polyline id="tempPolyline" points="" stroke="#0284c7" stroke-width="3.5" fill="none" stroke-dasharray="6 3" class="hidden"/>
 
-              <!-- 도면 그리기 시 실시간 스케치 패스 미리보기 -->
-              <path id="tempPlanPath" d="" stroke="#6366f1" stroke-width="2.5" fill="rgba(99, 102, 241, 0.15)" stroke-dasharray="4 2" class="hidden"/>
+              <!-- 도면 그리기 시 실시간 외곽 다각형 미리보기 (내부선 없음) -->
+              <polygon id="tempPlanPolygon" points="" stroke="#6366f1" stroke-width="2.5" fill="rgba(99, 102, 241, 0.15)" stroke-dasharray="4 2" class="hidden"/>
             </g>
           </svg>
         </div>
@@ -468,7 +468,7 @@
 
   <!-- ==================== 모달 영역 ==================== -->
 
-  <!-- 1. 통합 로그인 모달 (소장 계정 PIN 0621 추가) -->
+  <!-- 1. 통합 로그인 모달 (소장 PIN: 0621) -->
   <div id="loginModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-3">
     <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg w-full max-w-sm p-4 sm:p-5 space-y-3.5 shadow-2xl">
       <div class="text-center">
@@ -569,7 +569,6 @@
         <button onclick="closeStaffModal()" class="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]">✕</button>
       </div>
 
-      <!-- 직원 등록 폼 -->
       <div class="p-3 rounded border border-[var(--border)] bg-[var(--sidebar)] space-y-2 text-xs">
         <div class="font-bold text-[var(--foreground)]">+ 신규 관제 직원/관리자 등록</div>
         <div class="grid grid-cols-2 gap-2">
@@ -588,7 +587,6 @@
         </button>
       </div>
 
-      <!-- 직원 목록 -->
       <div class="space-y-1.5 text-xs">
         <div class="text-[11px] font-semibold text-[var(--muted-foreground)]">등록된 관제 직원 목록</div>
         <div id="staffListContainer" class="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar"></div>
@@ -598,7 +596,7 @@
     </div>
   </div>
 
-  <!-- 3. 도면 객체 속성 편집 모달 (외벽, 매장, EPS, 공조실, PS, AV, PD, 방화구역, 제연구역 9종) -->
+  <!-- 3. 도면 도형 속성 편집 모달 (AV는 '알람벨브'로 전면 변경!) -->
   <div id="planObjectModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-3">
     <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg w-full max-w-sm p-4 space-y-3.5 shadow-2xl">
       <div class="flex items-center justify-between border-b border-[var(--border)] pb-2">
@@ -609,10 +607,10 @@
       <input type="hidden" id="editPlanObjectId">
 
       <div class="space-y-2.5 text-xs">
-        <!-- 이름 입력란 -->
+        <!-- 이름 입력란 (매장, EPS, 공조실, PS, AV, PD 이름 수정 가능) -->
         <div id="planObjectNameWrapper">
           <label class="block font-semibold text-[var(--muted-foreground)] mb-1">도형 / 구역 명칭</label>
-          <input type="text" id="editPlanObjectName" class="w-full px-2.5 py-2 rounded border border-[var(--border)] bg-[var(--background)] font-bold text-sm" placeholder="예: 샤넬, 2F EPS실 등">
+          <input type="text" id="editPlanObjectName" class="w-full px-2.5 py-2 rounded border border-[var(--border)] bg-[var(--background)] font-bold text-sm" placeholder="예: 샤넬, 2F 알람벨브실 등">
         </div>
 
         <div>
@@ -624,27 +622,27 @@
             </label>
             <label class="flex items-center gap-1.5 p-1 rounded hover:bg-[var(--card)] cursor-pointer">
               <input type="radio" name="planObjType" value="STORE" class="text-blue-600">
-              <span class="font-semibold text-blue-700 dark:text-blue-300">매장 (이름 편집/배관겹침방지)</span>
+              <span class="font-semibold text-blue-700 dark:text-blue-300">매장</span>
             </label>
             <label class="flex items-center gap-1.5 p-1 rounded hover:bg-[var(--card)] cursor-pointer">
               <input type="radio" name="planObjType" value="EPS" class="text-orange-600">
-              <span class="font-semibold text-orange-600">EPS (전기)</span>
+              <span class="font-semibold text-orange-600">EPS</span>
             </label>
             <label class="flex items-center gap-1.5 p-1 rounded hover:bg-[var(--card)] cursor-pointer">
               <input type="radio" name="planObjType" value="AHU" class="text-emerald-600">
-              <span class="font-semibold text-emerald-600">공조실 (기계)</span>
+              <span class="font-semibold text-emerald-600">공조실</span>
             </label>
             <label class="flex items-center gap-1.5 p-1 rounded hover:bg-[var(--card)] cursor-pointer">
               <input type="radio" name="planObjType" value="PS" class="text-blue-500">
-              <span class="font-semibold text-blue-500">PS (파이프샤프트)</span>
+              <span class="font-semibold text-blue-500">PS</span>
             </label>
             <label class="flex items-center gap-1.5 p-1 rounded hover:bg-[var(--card)] cursor-pointer">
               <input type="radio" name="planObjType" value="AV" class="text-purple-600">
-              <span class="font-semibold text-purple-600">AV (음향통신)</span>
+              <span class="font-semibold text-purple-600">AV (알람벨브)</span>
             </label>
             <label class="flex items-center gap-1.5 p-1 rounded hover:bg-[var(--card)] cursor-pointer">
               <input type="radio" name="planObjType" value="PD" class="text-teal-600">
-              <span class="font-semibold text-teal-600">PD (파이프덕트)</span>
+              <span class="font-semibold text-teal-600">PD</span>
             </label>
             <label class="flex items-center gap-1.5 p-1 rounded hover:bg-[var(--card)] cursor-pointer">
               <input type="radio" name="planObjType" value="FIRE_ZONE" class="text-red-600">
@@ -698,7 +696,7 @@
   <div id="pipeRegisterModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-3">
     <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg w-full max-w-sm p-4 space-y-3 shadow-xl max-h-[90vh] overflow-y-auto custom-scrollbar">
       <div class="flex items-center justify-between border-b border-[var(--border)] pb-2">
-        <h3 class="font-bold text-sm text-[var(--foreground)]" id="pipeRegisterTitle">배관 / 덕트 / 전기 라인 등록</h3>
+        <h3 class="font-bold text-sm text-[var(--foreground)]" id="pipeRegisterTitle">배관 / 덕트 / 전기 라인 제원</h3>
         <button onclick="cancelPipeDraw()" class="text-xs text-[var(--muted-foreground)]">✕</button>
       </div>
 
@@ -714,19 +712,19 @@
           <input type="text" id="modalPipeName" class="w-full px-2.5 py-2 rounded border border-[var(--border)] bg-[var(--background)] text-xs font-bold" placeholder="예: 샤넬 인입 급수관 50A">
         </div>
         <div>
-          <label class="block text-[var(--muted-foreground)] mb-1 font-semibold">계통 구분 (배관 / 덕트 / 전기 / 소방)</label>
+          <label class="block text-[var(--muted-foreground)] mb-1 font-semibold">계통 상세 속성 (배관 / 덕트 / 전기 / 소방)</label>
           <select id="modalPipeKind" class="w-full px-2.5 py-2 rounded border border-[var(--border)] bg-[var(--background)] text-xs font-semibold">
             <optgroup label="[배관] 일반 관경 선로">
               <option value="WATER_SUPPLY">급수 (파란색)</option>
               <option value="DRAIN">배수 (노란색)</option>
               <option value="SANITARY">위생 (황색)</option>
             </optgroup>
-            <optgroup label="[덕트] 두께 5배, 투명도 50%, 녹색 통일">
+            <optgroup label="[덕트] 선두께 5배, 투명도 50%, 녹색 통일">
               <option value="HVAC_SUPPLY">공조급기 (덕트)</option>
               <option value="HVAC_EXHAUST">공조배기 (덕트)</option>
               <option value="KITCHEN_EXHAUST">주방배기 (덕트)</option>
             </optgroup>
-            <optgroup label="[전기] 전력 및 비상 전원">
+            <optgroup label="[전기] 전력선로">
               <option value="ELEC_NORMAL">전기일반 (주황색)</option>
               <option value="ELEC_EMERGENCY">전기비상 (붉은색)</option>
             </optgroup>
@@ -784,7 +782,6 @@
         <button onclick="closeBackupModal()" class="p-1 rounded text-[var(--muted-foreground)] hover:text-[var(--foreground)]">✕</button>
       </div>
 
-      <!-- Supabase 설정 -->
       <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--sidebar)] space-y-2 text-xs">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-1.5 font-bold text-[var(--foreground)]">
@@ -813,7 +810,6 @@
         </div>
       </div>
 
-      <!-- 백업 다운로드 -->
       <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--sidebar)] space-y-2 text-xs">
         <div class="flex items-center justify-between">
           <span class="font-bold text-[var(--foreground)]">스냅샷 백업 다운로드</span>
@@ -842,13 +838,16 @@
     let selectedStore = null;
     let selectedGroup = 'ALL'; // ALL | GROUP_PIPE | GROUP_DUCT | GROUP_ELEC | GROUP_FIRE
     let isMapEditMode = false;
-    let isDrawingPipeMode = false; // 배관 그리기 모드
-    let isDrawingPlanMode = false; // 도면 그리기 모드 (외벽/매장/방화구역 등)
+    let isDrawingPipeMode = false; // '라인그리기' 모드
+    let isDrawingPlanMode = false; // '도면 그리기' 모드
+
+    // 현재 활성화된 라인 상세 속성 (기본: 급수)
+    let currentActiveCategory = 'WATER_SUPPLY';
 
     let shopsData = [];
     let pipesData = [];
     let facilitiesData = [];
-    let planObjectsData = []; // 직접 그린 외벽, 매장, 방화구역, 제연구역 등
+    let planObjectsData = [];
 
     // 동적 층 목록
     let floorList = ['4F', '3F', '2F', '1F', 'B1', 'B2', 'B3', 'ROOF'];
@@ -866,14 +865,14 @@
       'ELEC_EMERGENCY': '#b91c1c'  // 전기비상 (붉은색)
     };
 
-    // 9종 도면 객체 속성 메타
+    // 9종 도면 객체 속성 메타 (AV는 '알람벨브'로 전면 변경!)
     const PLAN_OBJ_META = {
       'WALL':        { name: '건물외벽', stroke: '#0f172a', strokeWidth: 6, strokeDash: 'none', fill: 'none' },
       'STORE':       { name: '매장', border: '#94a3b8', strokeWidth: 2, fill: 'var(--shop-fill)' },
       'EPS':         { name: 'EPS',  border: '#f97316', strokeWidth: 2, fill: 'rgba(249, 115, 22, 0.08)' },
       'AHU':         { name: '공조실', border: '#16a34a', strokeWidth: 2, fill: 'rgba(22, 163, 74, 0.08)' },
       'PS':          { name: 'PS',   border: '#0284c7', strokeWidth: 2, fill: 'rgba(2, 132, 199, 0.08)' },
-      'AV':          { name: 'AV',   border: '#a855f7', strokeWidth: 2, fill: 'rgba(168, 85, 247, 0.08)' },
+      'AV':          { name: '알람벨브', border: '#a855f7', strokeWidth: 2, fill: 'rgba(168, 85, 247, 0.08)' },
       'PD':          { name: 'PD',   border: '#0d9488', strokeWidth: 2, fill: 'rgba(13, 148, 136, 0.08)' },
       'FIRE_ZONE':   { name: '방화구역', stroke: '#dc2626', strokeWidth: 4, strokeDash: '8 4', fill: 'rgba(220, 38, 38, 0.08)' },
       'SMOKE_ZONE':  { name: '제연구역', stroke: '#dc2626', strokeWidth: 4, strokeDash: '8 4', fill: 'rgba(239, 68, 68, 0.08)' }
@@ -887,12 +886,8 @@
       { id: 'ST-03', name: '박전기', email: 'elec@avenuel.co.kr', pin: '1111', role: 'staff' }
     ];
 
-    // 게스트 타이머 변수
     let guestTimerInterval = null;
-
-    // Supabase
     let supabaseClient = null;
-    let realtimeChannel = null;
 
     // 도면 팬 & 줌
     let currentZoom = 0.92;
@@ -905,14 +900,15 @@
     let initialTouchDistance = 0;
     let initialZoom = currentZoom;
 
-    // 배관 직교 드로잉 변수
+    // 라인 그리기 상태 변수
     let isDragDrawingPipe = false;
     let drawPipeStartPt = null;
-    let currentDrawnPipePoints = [];
+    let currentPipePoints = [];
+    let extendingPipeTarget = null; // 같은 라인 이어그리기 대상 객체
 
-    // 도면 자유형/매장/외벽 드로잉 변수
+    // 도면 그리기 상태 변수 (곡선 제거, 5mm직선/사선, 내부선 삭제)
     let isDragDrawingPlan = false;
-    let planDrawRawPoints = [];
+    let planDrawPoints = [];
 
     // 표준 슬롯 좌표
     const SHOP_SLOTS = [
@@ -929,7 +925,7 @@
     let FLOOR_METAS = {
       '4F': { name: '4F 뷰티/라운지', title: '4F 뷰티 & VIP 라운지 관제 평면도', coreTop: 'EV / VIP 전용 코어', coreBottom: '공조기계실 / 린넨실' },
       '3F': { name: '3F 패션/컨템포러리', title: '3F 럭셔리 패션 & 슈즈 관제 평면도', coreTop: 'EV / E/S 중앙 코어', coreBottom: 'EPS / TPS / 제2방재실' },
-      '2F': { name: '2F 명품 부티크', title: '2F 하이엔드 부티크 관제 평면도', coreTop: 'EV / E/S 중앙 코어', coreBottom: 'EPS / TPS / 방재실' },
+      '2F': { name: '2F 명품 부티크', title: '2F 하이엔드 부티크 관제 평면도', coreTop: 'EV / E/S 중앙 코어', coreBottom: 'EPS / 알람벨브 / 방재실' },
       '1F': { name: '1F 워치 & 주얼리', title: '1F 럭셔리 워치 & 주얼리 관제 평면도', coreTop: 'EV / E/S 중앙 코어', coreBottom: '중앙 보안 안내데스크' },
       'B1': { name: 'B1 고메 & 푸드마켓', title: 'B1 프리미엄 푸드마켓 & 다이닝 관제 평면도', coreTop: '식품 화물용 EV 코어', coreBottom: '주방 위생 배수 집수정' },
       'B2': { name: 'B2 기계실 & 변전실', title: 'B2 특고압 변전실 & 냉온수기실 관제 평면도', coreTop: '중앙 냉온수기 (흡수식 3대)', coreBottom: '특고압 수전 변전실 (22.9kV)' },
@@ -938,14 +934,13 @@
     };
 
     // ==========================================
-    // 2. 인증 및 권한 로직 (소장 PIN 0621 추가)
+    // 2. 인증 및 권한 로직 (소장 PIN: 0621)
     // ==========================================
     function initAuth() {
       const savedStaff = localStorage.getItem('avenuel_staff_list');
       if (savedStaff) {
         try {
           const list = JSON.parse(savedStaff);
-          // 소장 계정이 없으면 최상단에 병합
           if (!list.some(s => s.pin === '0621')) {
             list.unshift({ id: 'ST-00', name: '시설소장', email: 'director@avenuel.co.kr', pin: '0621', role: 'admin' });
           }
@@ -953,7 +948,6 @@
         } catch(e){}
       }
 
-      // 게스트 세션 확인
       const guestExp = localStorage.getItem('avenuel_guest_expire');
       if (guestExp) {
         const remaining = parseInt(guestExp, 10) - Date.now();
@@ -967,7 +961,6 @@
         }
       }
 
-      // 저장된 사용자 확인
       const savedUser = localStorage.getItem('avenuel_current_user');
       if (savedUser) {
         try {
@@ -984,13 +977,9 @@
       const modal = document.getElementById('loginModal');
       if (!modal) return;
       modal.classList.remove('hidden');
-
       const hasRegisteredPin = localStorage.getItem('avenuel_user_pin');
-      if (hasRegisteredPin) {
-        switchAuthView('pin');
-      } else {
-        switchAuthView('email');
-      }
+      if (hasRegisteredPin) switchAuthView('pin');
+      else switchAuthView('email');
       clearPin();
     }
 
@@ -1023,9 +1012,7 @@
 
     function appendPin(digit) {
       const pinInput = document.getElementById('pinInput');
-      if (pinInput && pinInput.value.length < 4) {
-        pinInput.value += digit;
-      }
+      if (pinInput && pinInput.value.length < 4) pinInput.value += digit;
     }
     function clearPin() {
       const pinInput = document.getElementById('pinInput');
@@ -1064,7 +1051,7 @@
 
         updateUserUI();
         closeLoginModal();
-        alert(`${matched.name}님 환영합니다. (${matched.role === 'admin' ? '관리자 권한' : '직원 편집 권한'})`);
+        alert(`${matched.name}님 환영합니다.`);
       } else {
         alert('일치하는 PIN 번호가 없습니다. (소장: 0621, 관리자: 1234, 직원: 5678)');
         clearPin();
@@ -1074,16 +1061,12 @@
     async function submitEmailLogin() {
       const email = document.getElementById('loginEmailInput').value.trim();
       const pwd = document.getElementById('loginPasswordInput').value.trim();
-
       if (!email || !pwd) {
         alert('이메일과 비밀번호를 입력해 주세요.');
         return;
       }
-
-      let loginSuccess = true;
       let matchedRole = 'staff';
       let matchedName = email.split('@')[0];
-
       if (email.includes('director') || email.includes('sojang')) {
         matchedName = '시설소장';
         matchedRole = 'admin';
@@ -1091,7 +1074,6 @@
         matchedName = '김시설 관리자';
         matchedRole = 'admin';
       }
-
       sessionStorage.setItem('pending_auth_user', JSON.stringify({ name: matchedName, email, role: matchedRole }));
       switchAuthView('setup');
     }
@@ -1099,7 +1081,6 @@
     function submitPinSetup() {
       const p1 = document.getElementById('newPinInput').value;
       const p2 = document.getElementById('confirmPinInput').value;
-
       if (!p1 || p1.length !== 4 || !/^\d{4}$/.test(p1)) {
         alert('4자리 숫자로 된 PIN을 입력해 주세요.');
         return;
@@ -1113,11 +1094,9 @@
       currentUser = { role: pending.role, name: pending.name, email: pending.email };
 
       const existingIdx = staffList.findIndex(s => s.email === pending.email);
-      if (existingIdx !== -1) {
-        staffList[existingIdx].pin = p1;
-      } else {
-        staffList.push({ id: 'ST-' + Date.now().toString().slice(-4), name: pending.name, email: pending.email, pin: p1, role: pending.role });
-      }
+      if (existingIdx !== -1) staffList[existingIdx].pin = p1;
+      else staffList.push({ id: 'ST-' + Date.now().toString().slice(-4), name: pending.name, email: pending.email, pin: p1, role: pending.role });
+
       localStorage.setItem('avenuel_staff_list', JSON.stringify(staffList));
       localStorage.setItem('avenuel_current_user', JSON.stringify(currentUser));
       localStorage.setItem('avenuel_user_pin', p1);
@@ -1126,7 +1105,7 @@
 
       updateUserUI();
       closeLoginModal();
-      alert(`PIN 설정이 완료되었습니다! 다음 로그인부터는 PIN 번호 4자리(${p1})로 로그인할 수 있습니다.`);
+      alert(`PIN 설정이 완료되었습니다! 다음 로그인부터 PIN(${p1})으로 로그인하세요.`);
     }
 
     function loginAsGuest() {
@@ -1134,12 +1113,11 @@
       const expireTime = Date.now() + oneHourMs;
       localStorage.setItem('avenuel_guest_expire', expireTime.toString());
       localStorage.removeItem('avenuel_current_user');
-
       currentUser = { role: 'guest', name: '게스트 관람자' };
       startGuestTimer(oneHourMs);
       updateUserUI();
       closeLoginModal();
-      alert('게스트로 입장하셨습니다.\n모든 도면과 배관을 열람할 수 있으며, 1시간 후 자동 로그아웃됩니다. (편집 권한 없음)');
+      alert('게스트로 입장하셨습니다. (1시간 후 자동 로그아웃, 뷰어 전용)');
     }
 
     function startGuestTimer(initialRemainingMs) {
@@ -1187,9 +1165,7 @@
 
     function handleAuthAction() {
       if (currentUser && currentUser.role !== 'guest' && currentUser.name !== '미인증') {
-        if (confirm('현재 계정에서 로그아웃하시겠습니까?')) {
-          logoutUser(true);
-        }
+        if (confirm('현재 계정에서 로그아웃하시겠습니까?')) logoutUser(true);
       } else {
         openLoginModal();
       }
@@ -1219,9 +1195,7 @@
           roleBadge.className = 'px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 shrink-0';
         }
       }
-      if (authBtn) {
-        authBtn.innerText = isGuest ? '로그인' : '로그아웃';
-      }
+      if (authBtn) authBtn.innerText = isGuest ? '로그인' : '로그아웃';
 
       const subUser = document.getElementById('sidebarUserSub');
       if (subUser) subUser.innerText = `(${currentUser.name || '미인증'})`;
@@ -1279,22 +1253,13 @@
       const email = document.getElementById('newStaffEmail').value.trim();
       const pin = document.getElementById('newStaffPin').value.trim();
       const role = document.getElementById('newStaffRole').value;
-
       if (!name || !pin || pin.length !== 4) {
         alert('직원 성명과 4자리 PIN 번호를 올바르게 입력해 주세요.');
         return;
       }
-
-      staffList.push({
-        id: 'ST-' + Date.now().toString().slice(-4),
-        name,
-        email: email || `${name}@avenuel.local`,
-        pin,
-        role
-      });
+      staffList.push({ id: 'ST-' + Date.now().toString().slice(-4), name, email: email || `${name}@avenuel.local`, pin, role });
       localStorage.setItem('avenuel_staff_list', JSON.stringify(staffList));
       renderStaffList();
-
       document.getElementById('newStaffName').value = '';
       document.getElementById('newStaffEmail').value = '';
       document.getElementById('newStaffPin').value = '';
@@ -1310,8 +1275,6 @@
         localStorage.setItem('avenuel_staff_list', JSON.stringify(staffList));
         renderStaffList();
         alert('PIN 번호가 수정되었습니다.');
-      } else if (newPin !== null) {
-        alert('PIN 번호는 4자리 숫자여야 합니다.');
       }
     }
 
@@ -1326,21 +1289,23 @@
     }
 
     // ==========================================
-    // 4. 매장 침범 및 겹쳐 그리기 방지 유틸리티
+    // 4. 금지 구역(매장, EPS, 공조실, PS, AV, PD) 침범 검사 & 선 끊기 (팝업 없음)
     // ==========================================
-    // 현재 층의 모든 매장(STORE) 속성 영역 검사
-    function getStorePolygons() {
-      const currentFloorShops = shopsData.filter(s => (s.floor === currentFloor || (!s.floor && currentFloor === '2F')) && (s.zone_type === 'STORE' || !s.zone_type));
-      const storePolys = [];
-
+    function getRestrictedZonePolygons() {
+      const RESTRICTED_TYPES = ['STORE', 'EPS', 'AHU', 'PS', 'AV', 'PD'];
+      const currentFloorShops = shopsData.filter(s => 
+        (s.floor === currentFloor || (!s.floor && currentFloor === '2F')) &&
+        RESTRICTED_TYPES.includes(s.zone_type || 'STORE')
+      );
+      const polys = [];
       currentFloorShops.forEach((s, idx) => {
         if (s.polygon && Array.isArray(s.polygon) && s.polygon.length >= 3) {
-          storePolys.push({ name: s.name, poly: s.polygon });
+          polys.push({ name: s.name, type: s.zone_type, poly: s.polygon });
         } else {
-          // 표준 슬롯 사각형
           const slot = SHOP_SLOTS[idx % SHOP_SLOTS.length];
-          storePolys.push({
+          polys.push({
             name: s.name,
+            type: s.zone_type,
             poly: [
               { x: slot.x, y: slot.y },
               { x: slot.x + slot.width, y: slot.y },
@@ -1350,10 +1315,9 @@
           });
         }
       });
-      return storePolys;
+      return polys;
     }
 
-    // Point-in-polygon (Ray-casting)
     function isPointInPoly(pt, poly) {
       let inside = false;
       for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -1365,36 +1329,111 @@
       return inside;
     }
 
-    // 점이 어떤 매장 내부인지 검사
-    function isPointInsideAnyStore(pt) {
-      const stores = getStorePolygons();
-      for (const st of stores) {
-        if (isPointInPoly(pt, st.poly)) {
-          return st.name;
+    function isPointInsideRestrictedZone(pt) {
+      const zones = getRestrictedZonePolygons();
+      for (const z of zones) {
+        if (isPointInPoly(pt, z.poly)) return z.name;
+      }
+      return null;
+    }
+
+    // 선분-선분 교차점 계산
+    function lineIntersectsSegment(p1, p2, p3, p4) {
+      const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
+      const x3 = p3.x, y3 = p3.y, x4 = p4.x, y4 = p4.y;
+      const denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+      if (denom === 0) return null;
+      const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom;
+      const ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom;
+      if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1) {
+        return {
+          x: Math.round(x1 + ua * (x2 - x1)),
+          y: Math.round(y1 + ua * (y2 - y1))
+        };
+      }
+      return null;
+    }
+
+    // 선분이 금지 구역 경계선과 교차하는 가장 가까운 지점 찾기 (선 끊기용)
+    function findFirstRestrictedIntersection(pStart, pEnd) {
+      const restricted = getRestrictedZonePolygons();
+      let closestPt = null;
+      let minD = Infinity;
+
+      for (const r of restricted) {
+        const poly = r.poly;
+        for (let i = 0; i < poly.length; i++) {
+          const edgeStart = poly[i];
+          const edgeEnd = poly[(i + 1) % poly.length];
+          const ipt = lineIntersectsSegment(pStart, pEnd, edgeStart, edgeEnd);
+          if (ipt) {
+            const d = Math.hypot(ipt.x - pStart.x, ipt.y - pStart.y);
+            if (d < minD && d > 2) {
+              minD = d;
+              closestPt = ipt;
+            }
+          }
+        }
+      }
+      return closestPt;
+    }
+
+    // ==========================================
+    // 5. 공통 5mm 스냅 계산식 (5mm 이내 직선, 5mm 초과 대각선)
+    // ==========================================
+    function calc5mmSnappedPoint(pOrigin, pCurr) {
+      const THRESHOLD = 19; // 화면 5mm = 약 19px
+      const dx = pCurr.x - pOrigin.x;
+      const dy = pCurr.y - pOrigin.y;
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+
+      // Y축 편차가 5mm 이내면 완벽한 수평선
+      if (absY <= THRESHOLD) {
+        return { x: pCurr.x, y: pOrigin.y };
+      }
+      // X축 편차가 5mm 이내면 완벽한 수직선
+      if (absX <= THRESHOLD) {
+        return { x: pOrigin.x, y: pCurr.y };
+      }
+      // 5mm 초과 시 대각선 연결
+      return { x: pCurr.x, y: pCurr.y };
+    }
+
+    // ==========================================
+    // 6. 같은 라인 이어서 그리기 스냅 검사 (속성 일치 필수)
+    // ==========================================
+    function findSnapPipeEndpoint(pt) {
+      const SNAP_RADIUS = 25;
+      for (const pipe of pipesData) {
+        if (pipe.floor !== currentFloor && (pipe.floor || currentFloor !== '2F')) continue;
+        const pts = pipe.points.trim().split(' ').map(p => {
+          const [x, y] = p.split(',').map(Number);
+          return { x, y };
+        });
+        if (pts.length < 2) continue;
+
+        const pFirst = pts[0];
+        const pLast = pts[pts.length - 1];
+
+        if (Math.hypot(pt.x - pLast.x, pt.y - pLast.y) <= SNAP_RADIUS) {
+          return { pipe, point: pLast, isEnd: true };
+        }
+        if (Math.hypot(pt.x - pFirst.x, pt.y - pFirst.y) <= SNAP_RADIUS) {
+          return { pipe, point: pFirst, isEnd: false };
         }
       }
       return null;
     }
 
-    // 선분이 매장 내부를 관통하거나 겹치는지 검사
-    function isLineOverlappingStore(pts) {
-      for (const pStr of pts) {
-        const [x, y] = pStr.split(',').map(Number);
-        const storeName = isPointInsideAnyStore({ x, y });
-        if (storeName) return storeName;
-      }
-      return null;
-    }
-
     // ==========================================
-    // 5. '그리기' 모드 (연속 그리기, 팝업 없음, 배관/덕트)
+    // 7. '라인그리기' 모드 토글 (버튼명: 라인그리기)
     // ==========================================
     function toggleDrawingPipe() {
       if (currentUser.role === 'guest') {
-        alert('게스트는 배관 그리기 권한이 없습니다.');
+        alert('게스트는 라인그리기 권한이 없습니다.');
         return;
       }
-      // 다른 모드 끄기
       if (isDrawingPlanMode) toggleDrawingPlan(false);
       if (isMapEditMode) toggleMapEditMode();
 
@@ -1408,42 +1447,26 @@
         btn.className = isDrawingPipeMode
           ? 'py-1.5 px-1 bg-blue-600 text-white rounded font-bold text-xs text-center truncate shadow'
           : 'py-1.5 px-1 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-semibold text-xs text-center truncate';
-        btn.innerText = isDrawingPipeMode ? '그리기 종료' : '그리기';
+        btn.innerText = isDrawingPipeMode ? '라인그리기 종료' : '라인그리기';
       }
 
       if (badge && badgeText) {
         badge.classList.toggle('hidden', !isDrawingPipeMode);
         badge.classList.toggle('inline-flex', isDrawingPipeMode);
-        badgeText.innerText = '배관/덕트 그리기 활성';
+        badgeText.innerText = '라인 그리기 활성';
       }
 
       if (cadStatus) {
         cadStatus.innerText = isDrawingPipeMode
-          ? `[${currentFloor}] 드래그하여 배관/덕트 선을 그리세요 (선 클릭 시 제원 등록)`
+          ? `[${currentFloor}] 드래그하여 라인을 그리세요 (5mm이내 직선, 초과 대각선 / 구역 닿으면 자동 끊김)`
           : `${currentFloor} 평면도 관제 화면`;
       }
 
       document.body.classList.toggle('mode-drawing-pipe', isDrawingPipeMode);
     }
 
-    // 직교 라인 계산 (사선 불가, 직각 꺾임)
-    function calcOrthogonalPoints(p1, p2) {
-      const dx = Math.abs(p2.x - p1.x);
-      const dy = Math.abs(p2.y - p1.y);
-
-      if (dy < 6) return [`${Math.round(p1.x)},${Math.round(p1.y)}`, `${Math.round(p2.x)},${Math.round(p1.y)}`];
-      if (dx < 6) return [`${Math.round(p1.x)},${Math.round(p1.y)}`, `${Math.round(p1.x)},${Math.round(p2.y)}`];
-
-      // 대각선 꺾임점 자동 삽입
-      return [
-        `${Math.round(p1.x)},${Math.round(p1.y)}`,
-        `${Math.round(p2.x)},${Math.round(p1.y)}`,
-        `${Math.round(p2.x)},${Math.round(p2.y)}`
-      ];
-    }
-
     // ==========================================
-    // 6. '도면 그리기' 모드 (외벽, 매장, 방화구역 등 직접 그리기)
+    // 8. '도면 그리기' 모드 토글 (곡선 제거, 5mm직선/사선, 내부선 삭제)
     // ==========================================
     function toggleDrawingPlan(forceState) {
       if (currentUser.role === 'guest') {
@@ -1469,80 +1492,69 @@
       if (badge && badgeText) {
         badge.classList.toggle('hidden', !isDrawingPlanMode);
         badge.classList.toggle('inline-flex', isDrawingPlanMode);
-        badgeText.innerText = '도면 외벽/매장 그리기 활성';
+        badgeText.innerText = '도면 외벽/구역 그리기 활성';
       }
 
       if (cadStatus) {
         cadStatus.innerText = isDrawingPlanMode
-          ? `[${currentFloor}] 마우스로 외벽/매장을 자유롭게 그리세요 (자동 직선화/곡선 완성)`
+          ? `[${currentFloor}] 마우스로 외벽/구역 다각형을 그리세요 (내부선 자동 삭제 / 다각형 완성)`
           : `${currentFloor} 평면도 관제 화면`;
       }
 
       document.body.classList.toggle('mode-drawing-plan', isDrawingPlanMode);
     }
 
-    // 스마트 스케치: 자동 직선화 및 곡선화 다각형 알고리즘
-    function simplifyAndSmoothPath(rawPts) {
-      if (rawPts.length < 3) return null;
+    // 다각형 외곽 추출 알고리즘 (내부선 완전 삭제 & 순수 외곽 다각형 생성)
+    function extractBoundaryPolygon(pts) {
+      if (pts.length < 3) return null;
 
-      // 1. RDP (Ramer-Douglas-Peucker) 알고리즘으로 단순화
-      const simplified = rdpSimplify(rawPts, 5.0);
-      if (simplified.length < 3) return null;
-
-      // 2. 직교 스냅 (인접 변이 거의 수평/수직이면 직선화)
-      for (let i = 0; i < simplified.length; i++) {
-        const next = simplified[(i + 1) % simplified.length];
-        const dx = Math.abs(next.x - simplified[i].x);
-        const dy = Math.abs(next.y - simplified[i].y);
-        if (dx < 10) next.x = simplified[i].x; // 수직 정렬
-        if (dy < 10) next.y = simplified[i].y; // 수평 정렬
-      }
-
-      return simplified;
-    }
-
-    function rdpSimplify(points, epsilon) {
-      if (points.length <= 2) return points;
-      let dmax = 0;
-      let index = 0;
-      const end = points.length - 1;
-
-      for (let i = 1; i < end; i++) {
-        const d = perpendicularDistance(points[i], points[0], points[end]);
-        if (d > dmax) {
-          index = i;
-          dmax = d;
+      // 1. 점 단순화 (인접 중복점 제거)
+      const clean = [];
+      for (let i = 0; i < pts.length; i++) {
+        if (clean.length === 0 || Math.hypot(pts[i].x - clean[clean.length - 1].x, pts[i].y - clean[clean.length - 1].y) > 10) {
+          clean.push(pts[i]);
         }
       }
+      if (clean.length < 3) return null;
 
-      if (dmax > epsilon) {
-        const recResults1 = rdpSimplify(points.slice(0, index + 1), epsilon);
-        const recResults2 = rdpSimplify(points.slice(index), epsilon);
-        return recResults1.slice(0, recResults1.length - 1).concat(recResults2);
-      } else {
-        return [points[0], points[end]];
+      // 2. Monotone Chain Convex Hull 기반으로 다각형 내부로 들어간 선/점들을 완전히 제거하고 외곽 경계만 추출
+      clean.sort((a, b) => a.x === b.x ? a.y - b.y : a.x - b.x);
+
+      function cross(o, a, b) {
+        return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
       }
-    }
 
-    function perpendicularDistance(pt, lineStart, lineEnd) {
-      const dx = lineEnd.x - lineStart.x;
-      const dy = lineEnd.y - lineStart.y;
-      const mag = Math.sqrt(dx * dx + dy * dy);
-      if (mag === 0) return Math.sqrt(Math.pow(pt.x - lineStart.x, 2) + Math.pow(pt.y - lineStart.y, 2));
-      const u = ((pt.x - lineStart.x) * dx + (pt.y - lineStart.y) * dy) / (mag * mag);
-      const ix = lineStart.x + u * dx;
-      const iy = lineStart.y + u * dy;
-      return Math.sqrt(Math.pow(pt.x - ix, 2) + Math.pow(pt.y - iy, 2));
+      const lower = [];
+      for (const p of clean) {
+        while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
+          lower.pop();
+        }
+        lower.push(p);
+      }
+
+      const upper = [];
+      for (let i = clean.length - 1; i >= 0; i--) {
+        const p = clean[i];
+        while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
+          upper.pop();
+        }
+        upper.push(p);
+      }
+
+      lower.pop();
+      upper.pop();
+      const hull = lower.concat(upper);
+      return hull.length >= 3 ? hull : clean;
     }
 
     // ==========================================
-    // 7. 통합 캔버스 드로잉 리스너 (배관 직교 + 도면 스케치)
+    // 9. 통합 캔버스 드로잉 이벤트 리스너
     // ==========================================
     function initDrawingListeners() {
       const vp = document.getElementById('viewport');
       const svg = document.getElementById('cadSvg');
       const tempPoly = document.getElementById('tempPolyline');
-      const tempPlan = document.getElementById('tempPlanPath');
+      const tempPlan = document.getElementById('tempPlanPolygon');
       if (!vp || !svg) return;
 
       function getSvgPoint(clientX, clientY) {
@@ -1557,27 +1569,40 @@
       vp.addEventListener('mousedown', (e) => {
         const svgPt = getSvgPoint(e.clientX, e.clientY);
 
-        // A. 배관 그리기 모드
+        // A. 라인그리기 모드
         if (isDrawingPipeMode) {
-          // 매장 내부 시작 차단 검사
-          const overlappingStore = isPointInsideAnyStore(svgPt);
-          if (overlappingStore) {
-            const cadStatus = document.getElementById('cadStatusText');
-            if (cadStatus) cadStatus.innerText = `⚠️ [${overlappingStore}] 매장 영역 내부에는 배관을 직접 그릴 수 없습니다.`;
-            return;
+          // 1. 금지 구역(매장, EPS, 공조실, PS, AV, PD) 내부 시작 시 안내 팝업 없이 즉시 차단
+          if (isPointInsideRestrictedZone(svgPt)) return;
+
+          // 2. 같은 라인 이어서 그리기 스냅 검사
+          extendingPipeTarget = null;
+          const snapEndpoint = findSnapPipeEndpoint(svgPt);
+          if (snapEndpoint) {
+            // "같은 라인이라도 상세 속성이 다르면 이어서 그리기 불가. 같은 속성만 이어서 그리기 가능."
+            if (snapEndpoint.pipe.category === currentActiveCategory) {
+              extendingPipeTarget = snapEndpoint;
+              drawPipeStartPt = snapEndpoint.point;
+            } else {
+              // 속성이 다르면 이어그리지 않고 새로운 독립 라인으로 시작
+              drawPipeStartPt = svgPt;
+            }
+          } else {
+            drawPipeStartPt = svgPt;
           }
+
           isDragDrawingPipe = true;
-          drawPipeStartPt = svgPt;
+          currentPipePoints = [drawPipeStartPt];
           tempPoly.classList.remove('hidden');
+          tempPoly.setAttribute('points', `${Math.round(drawPipeStartPt.x)},${Math.round(drawPipeStartPt.y)}`);
           return;
         }
 
         // B. 도면 그리기 모드
         if (isDrawingPlanMode) {
           isDragDrawingPlan = true;
-          planDrawRawPoints = [svgPt];
+          planDrawPoints = [svgPt];
           tempPlan.classList.remove('hidden');
-          tempPlan.setAttribute('d', `M ${svgPt.x} ${svgPt.y}`);
+          tempPlan.setAttribute('points', `${Math.round(svgPt.x)},${Math.round(svgPt.y)}`);
           return;
         }
       });
@@ -1586,17 +1611,40 @@
       window.addEventListener('mousemove', (e) => {
         const svgPt = getSvgPoint(e.clientX, e.clientY);
 
+        // A. 라인그리기 진행
         if (isDrawingPipeMode && isDragDrawingPipe && drawPipeStartPt) {
-          const pts = calcOrthogonalPoints(drawPipeStartPt, svgPt);
-          currentDrawnPipePoints = pts;
-          tempPoly.setAttribute('points', pts.join(' '));
+          // 5mm 이내 직선, 5mm 초과 대각선 스냅 계산
+          const pLast = currentPipePoints[currentPipePoints.length - 1];
+          const snapped = calc5mmSnappedPoint(pLast, svgPt);
+
+          // 금지 구역 교차 검사: 교차 시 안내 팝업 없이 그 지점에서 선이 끊어지며 마무리!
+          const intersectPt = findFirstRestrictedIntersection(pLast, snapped);
+          if (intersectPt) {
+            currentPipePoints.push(intersectPt);
+            tempPoly.setAttribute('points', currentPipePoints.map(p => `${p.x},${p.y}`).join(' '));
+            isDragDrawingPipe = false;
+            tempPoly.classList.add('hidden');
+            finishPipeStroke(true); // 교차로 인한 자동 마무리
+            return;
+          }
+
+          const dist = Math.hypot(snapped.x - pLast.x, snapped.y - pLast.y);
+          if (dist > 15) {
+            currentPipePoints.push(snapped);
+            tempPoly.setAttribute('points', currentPipePoints.map(p => `${p.x},${p.y}`).join(' '));
+          }
           return;
         }
 
-        if (isDrawingPlanMode && isDragDrawingPlan) {
-          planDrawRawPoints.push(svgPt);
-          const dStr = planDrawRawPoints.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${Math.round(p.x)} ${Math.round(p.y)}`).join(' ');
-          tempPlan.setAttribute('d', dStr);
+        // B. 도면 그리기 진행 (5mm 스냅, 곡선 없음)
+        if (isDrawingPlanMode && isDragDrawingPlan && planDrawPoints.length > 0) {
+          const pLast = planDrawPoints[planDrawPoints.length - 1];
+          const snapped = calc5mmSnappedPoint(pLast, svgPt);
+          const dist = Math.hypot(snapped.x - pLast.x, snapped.y - pLast.y);
+          if (dist > 15) {
+            planDrawPoints.push(snapped);
+            tempPlan.setAttribute('points', planDrawPoints.map(p => `${p.x},${p.y}`).join(' '));
+          }
           return;
         }
       });
@@ -1606,10 +1654,9 @@
         if (isDrawingPipeMode && isDragDrawingPipe) {
           isDragDrawingPipe = false;
           tempPoly.classList.add('hidden');
-          finishPipeStroke();
+          finishPipeStroke(false);
           return;
         }
-
         if (isDrawingPlanMode && isDragDrawingPlan) {
           isDragDrawingPlan = false;
           tempPlan.classList.add('hidden');
@@ -1624,19 +1671,26 @@
         const svgPt = getSvgPoint(e.touches[0].clientX, e.touches[0].clientY);
 
         if (isDrawingPipeMode) {
-          const overlappingStore = isPointInsideAnyStore(svgPt);
-          if (overlappingStore) {
-            alert(`[${overlappingStore}] 매장 내부에는 배관을 직접 그릴 수 없습니다.`);
-            return;
+          if (isPointInsideRestrictedZone(svgPt)) return;
+
+          extendingPipeTarget = null;
+          const snapEndpoint = findSnapPipeEndpoint(svgPt);
+          if (snapEndpoint && snapEndpoint.pipe.category === currentActiveCategory) {
+            extendingPipeTarget = snapEndpoint;
+            drawPipeStartPt = snapEndpoint.point;
+          } else {
+            drawPipeStartPt = svgPt;
           }
+
           isDragDrawingPipe = true;
-          drawPipeStartPt = svgPt;
+          currentPipePoints = [drawPipeStartPt];
           tempPoly.classList.remove('hidden');
+          tempPoly.setAttribute('points', `${Math.round(drawPipeStartPt.x)},${Math.round(drawPipeStartPt.y)}`);
         } else if (isDrawingPlanMode) {
           isDragDrawingPlan = true;
-          planDrawRawPoints = [svgPt];
+          planDrawPoints = [svgPt];
           tempPlan.classList.remove('hidden');
-          tempPlan.setAttribute('d', `M ${svgPt.x} ${svgPt.y}`);
+          tempPlan.setAttribute('points', `${Math.round(svgPt.x)},${Math.round(svgPt.y)}`);
         }
       }, { passive: false });
 
@@ -1646,14 +1700,31 @@
 
         if (isDrawingPipeMode && isDragDrawingPipe && drawPipeStartPt) {
           e.preventDefault();
-          const pts = calcOrthogonalPoints(drawPipeStartPt, svgPt);
-          currentDrawnPipePoints = pts;
-          tempPoly.setAttribute('points', pts.join(' '));
-        } else if (isDrawingPlanMode && isDragDrawingPlan) {
+          const pLast = currentPipePoints[currentPipePoints.length - 1];
+          const snapped = calc5mmSnappedPoint(pLast, svgPt);
+
+          const intersectPt = findFirstRestrictedIntersection(pLast, snapped);
+          if (intersectPt) {
+            currentPipePoints.push(intersectPt);
+            tempPoly.setAttribute('points', currentPipePoints.map(p => `${p.x},${p.y}`).join(' '));
+            isDragDrawingPipe = false;
+            tempPoly.classList.add('hidden');
+            finishPipeStroke(true);
+            return;
+          }
+
+          if (Math.hypot(snapped.x - pLast.x, snapped.y - pLast.y) > 15) {
+            currentPipePoints.push(snapped);
+            tempPoly.setAttribute('points', currentPipePoints.map(p => `${p.x},${p.y}`).join(' '));
+          }
+        } else if (isDrawingPlanMode && isDragDrawingPlan && planDrawPoints.length > 0) {
           e.preventDefault();
-          planDrawRawPoints.push(svgPt);
-          const dStr = planDrawRawPoints.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${Math.round(p.x)} ${Math.round(p.y)}`).join(' ');
-          tempPlan.setAttribute('d', dStr);
+          const pLast = planDrawPoints[planDrawPoints.length - 1];
+          const snapped = calc5mmSnappedPoint(pLast, svgPt);
+          if (Math.hypot(snapped.x - pLast.x, snapped.y - pLast.y) > 15) {
+            planDrawPoints.push(snapped);
+            tempPlan.setAttribute('points', planDrawPoints.map(p => `${p.x},${p.y}`).join(' '));
+          }
         }
       }, { passive: false });
 
@@ -1661,7 +1732,7 @@
         if (isDrawingPipeMode && isDragDrawingPipe) {
           isDragDrawingPipe = false;
           tempPoly.classList.add('hidden');
-          finishPipeStroke();
+          finishPipeStroke(false);
         } else if (isDrawingPlanMode && isDragDrawingPlan) {
           isDragDrawingPlan = false;
           tempPlan.classList.add('hidden');
@@ -1670,39 +1741,51 @@
       });
     }
 
-    // 선 그리기 한 획 마침 (팝업 없이 점선으로 바로 그리고 연속해서 이어서 그리기 지원)
-    function finishPipeStroke() {
-      if (!currentDrawnPipePoints || currentDrawnPipePoints.length < 2) return;
+    // 라인 그리기 한 획 마침
+    function finishPipeStroke(terminatedByIntersection = false) {
+      if (!currentPipePoints || currentPipePoints.length < 2) return;
 
-      const p1 = currentDrawnPipePoints[0].split(',').map(Number);
-      const pLast = currentDrawnPipePoints[currentDrawnPipePoints.length - 1].split(',').map(Number);
-      const dist = Math.sqrt(Math.pow(pLast[0]-p1[0], 2) + Math.pow(pLast[1]-p1[1], 2));
-      if (dist < 15) return;
+      const ptsStr = currentPipePoints.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join(' ');
 
-      // 매장 겹침 검사
-      const overlapStore = isLineOverlappingStore(currentDrawnPipePoints);
-      if (overlapStore) {
-        alert(`매장 속성을 가진 [${overlapStore}] 구역 위로는 배관/선로를 겹쳐서 그릴 수 없습니다.`);
-        currentDrawnPipePoints = [];
+      // A. 같은 라인 이어서 그리기 적용
+      if (extendingPipeTarget && extendingPipeTarget.pipe) {
+        const pipe = extendingPipeTarget.pipe;
+        if (extendingPipeTarget.isEnd) {
+          pipe.points = pipe.points.trim() + ' ' + ptsStr;
+        } else {
+          pipe.points = ptsStr + ' ' + pipe.points.trim();
+        }
+        extendingPipeTarget = null;
+        saveLocalCache();
+        renderPipes();
+        renderPipesList();
+
+        const cadStatus = document.getElementById('cadStatusText');
+        if (cadStatus) cadStatus.innerText = `[${pipe.name}] 라인이 성공적으로 이어졌습니다.`;
+        currentPipePoints = [];
         return;
       }
 
-      // 새 배관 임시 등록 (점선라인으로 즉시 도면에 반영)
+      // B. 신규 라인 생성 (점선으로 도면에 즉시 등록)
+      const p1 = currentPipePoints[0];
+      const pLast = currentPipePoints[currentPipePoints.length - 1];
+      const dist = Math.hypot(pLast.x - p1.x, pLast.y - p1.y);
+
       const newId = 'P-' + Date.now();
-      const currentFloorShops = shopsData.filter(s => s.floor === currentFloor || (!s.floor && currentFloor === '2F'));
-      const defaultShop = currentFloorShops.length > 0 ? currentFloorShops[0].name : '공용 복도';
+      const isDuct = ['HVAC_SUPPLY', 'HVAC_EXHAUST', 'KITCHEN_EXHAUST'].includes(currentActiveCategory);
+      const color = isDuct ? '#16a34a' : (PIPE_COLOR_MAP[currentActiveCategory] || '#0284c7');
 
       const draftPipe = {
         id: newId,
-        name: `신규 선로 (${(dist * 0.12).toFixed(1)}m)`,
-        shop: defaultShop,
-        category: 'WATER_SUPPLY',
-        spec: '50A',
+        name: `${isDuct ? '공조 덕트' : '배관 선로'} (${(dist * 0.12).toFixed(1)}m)`,
+        shop: '공용 관로',
+        category: currentActiveCategory,
+        spec: isDuct ? '400x300' : '50A',
         length: (dist * 0.12).toFixed(1) + ' m',
-        points: currentDrawnPipePoints.join(' '),
-        color: '#0284c7',
+        points: ptsStr,
+        color: color,
         floor: currentFloor,
-        isDraft: true, // 등록 대기 점선 상태
+        isDraft: true,
         valve_open: true,
         status: 'NORMAL'
       };
@@ -1713,27 +1796,31 @@
       renderPipesList();
 
       const cadStatus = document.getElementById('cadStatusText');
-      if (cadStatus) cadStatus.innerText = `선이 그려졌습니다! 이어서 계속 그리거나, 선을 클릭하여 제원을 등록하세요.`;
-      currentDrawnPipePoints = [];
+      if (cadStatus) {
+        cadStatus.innerText = terminatedByIntersection
+          ? `구역 경계에 닿아 라인이 끊어졌습니다. (선을 클릭하여 제원 수정 가능)`
+          : `라인이 그려졌습니다! 이어서 계속 그리거나 선을 클릭하여 제원을 등록하세요.`;
+      }
+      currentPipePoints = [];
     }
 
-    // 도면 그리기 한 획 마침 (도형 자동 완성 및 매장 속성 부여)
+    // 도면 그리기 한 획 마침 (내부선 완전 삭제 & 순수 외곽 다각형 완성)
     function finishPlanStroke() {
-      if (!planDrawRawPoints || planDrawRawPoints.length < 4) return;
+      if (!planDrawPoints || planDrawPoints.length < 3) return;
 
-      const smoothPoints = simplifyAndSmoothPath(planDrawRawPoints);
-      if (!smoothPoints || smoothPoints.length < 3) return;
+      // 다각형 외곽 추출: 내부로 들어간 선/점들을 완전히 삭제하고 경계 다각형만 추출
+      const boundaryPolygon = extractBoundaryPolygon(planDrawPoints);
+      if (!boundaryPolygon || boundaryPolygon.length < 3) return;
 
       const newId = 'OBJ-' + Date.now();
       const newName = `새 구역 ${shopsData.length + 1}`;
 
-      // 도면 그리기로 생성된 객체: 기본 매장(STORE) 속성 부여
       const newPlanObj = {
         id: newId,
         name: newName,
         code: `Z-${Date.now().toString().slice(-3)}`,
-        type: 'STORE', // 기본 매장 속성
-        polygon: smoothPoints,
+        type: 'STORE',
+        polygon: boundaryPolygon,
         floor: currentFloor
       };
 
@@ -1746,19 +1833,19 @@
         pipe_count: 0,
         floor: currentFloor,
         zone_type: 'STORE',
-        polygon: smoothPoints
+        polygon: boundaryPolygon
       });
 
       saveLocalCache();
       renderAll();
 
       const cadStatus = document.getElementById('cadStatusText');
-      if (cadStatus) cadStatus.innerText = `도형이 완성되었습니다! 해당 도형을 클릭하여 외벽, 매장, 방화구역 속성을 편집하세요.`;
-      planDrawRawPoints = [];
+      if (cadStatus) cadStatus.innerText = `다각형 완성 (내부선 정리됨)! 도형을 클릭하여 외벽, 알람벨브, 방화구역 속성을 설정하세요.`;
+      planDrawPoints = [];
     }
 
     // ==========================================
-    // 8. 배관 / 덕트 제원 등록 모달 (선 클릭 시 호출)
+    // 10. 배관/덕트 등록 팝업 및 속성 연동
     // ==========================================
     function openPipeRegisterModal(pipeId) {
       if (currentUser.role === 'guest') return;
@@ -1801,22 +1888,20 @@
       pipe.category = kind;
       pipe.spec = spec;
       pipe.color = PIPE_COLOR_MAP[kind] || '#0284c7';
-      pipe.isDraft = false; // 정식 등록 완료
+      pipe.isDraft = false;
+
+      // 현재 활성 드로잉 속성으로 동기화 (다음 그리기 시 같은 속성으로 이어그리기 지원)
+      currentActiveCategory = kind;
 
       saveLocalCache();
       renderAll();
       cancelPipeDraw();
-      alert(`[${pipe.floor} / ${shop}] ${name} 등록이 완료되었습니다.`);
-
-      if (supabaseClient) {
-        supabaseClient.from('pipes').upsert([pipe]).then(() => {});
-      }
+      alert(`[${pipe.floor} / ${shop}] ${name} 등록 완료`);
     }
 
     function deleteTargetPipe() {
       const pId = document.getElementById('modalTargetPipeId').value;
-      if (!confirm('정말 해당 배관/덕트 선을 삭제하시겠습니까?')) return;
-
+      if (!confirm('해당 배관/덕트 선을 삭제하시겠습니까?')) return;
       pipesData = pipesData.filter(p => p.id !== pId);
       saveLocalCache();
       renderAll();
@@ -1824,12 +1909,10 @@
     }
 
     // ==========================================
-    // 9. 도면 도형 속성 편집 모달 (9종 속성 & 이름 편집)
+    // 11. 도면 도형 속성 편집 (AV는 알람벨브)
     // ==========================================
     function openPlanObjectModal(objId) {
       if (currentUser.role === 'guest') return;
-
-      // shopsData 또는 planObjectsData에서 조회
       const shop = shopsData.find(s => s.id === objId || s.name === objId);
       if (!shop) return;
 
@@ -1861,66 +1944,57 @@
       shop.name = newName || oldName;
       shop.zone_type = newType;
 
-      // planObjectsData 동기화
       const planObj = planObjectsData.find(o => o.id === targetId || o.name === oldName);
       if (planObj) {
         planObj.name = shop.name;
         planObj.type = newType;
       }
 
-      // 연결된 배관 이름 동기화
       pipesData.forEach(p => {
-        if (p.shop === oldName && p.floor === currentFloor) {
-          p.shop = shop.name;
-        }
+        if (p.shop === oldName && p.floor === currentFloor) p.shop = shop.name;
       });
 
       saveLocalCache();
       renderAll();
       closePlanObjectModal();
-      alert(`[${shop.name}] 속성이 ${PLAN_OBJ_META[newType]?.name || newType}(으)로 변경되었습니다.`);
+      alert(`[${shop.name}] 속성이 ${PLAN_OBJ_META[newType]?.name || newType}(으)로 저장되었습니다.`);
     }
 
     function deletePlanObject() {
       const targetId = document.getElementById('editPlanObjectId').value;
-      if (!confirm('정말 해당 도면 도형을 삭제하시겠습니까?')) return;
-
+      if (!confirm('해당 도면 도형을 삭제하시겠습니까?')) return;
       shopsData = shopsData.filter(s => !(s.id === targetId || s.name === targetId));
       planObjectsData = planObjectsData.filter(o => !(o.id === targetId || o.name === targetId));
-
       saveLocalCache();
       renderAll();
       closePlanObjectModal();
     }
 
     // ==========================================
-    // 10. 계통 그룹 필터 핸들러
+    // 12. 계통 필터 그룹화 핸들러
     // ==========================================
     function handleGroupFilter(grp) {
       selectedGroup = grp;
+      // 그룹 필터 선택 시 활성 속성 자동 세팅
+      if (grp === 'GROUP_PIPE') currentActiveCategory = 'WATER_SUPPLY';
+      else if (grp === 'GROUP_DUCT') currentActiveCategory = 'HVAC_SUPPLY';
+      else if (grp === 'GROUP_ELEC') currentActiveCategory = 'ELEC_NORMAL';
+      else if (grp === 'GROUP_FIRE') currentActiveCategory = 'FIRE';
       renderPipes();
       renderFacilities();
     }
 
     function matchesGroupFilter(category) {
       if (selectedGroup === 'ALL') return true;
-      if (selectedGroup === 'GROUP_PIPE') {
-        return ['WATER_SUPPLY', 'DRAIN', 'SANITARY'].includes(category);
-      }
-      if (selectedGroup === 'GROUP_DUCT') {
-        return ['HVAC_SUPPLY', 'HVAC_EXHAUST', 'KITCHEN_EXHAUST'].includes(category);
-      }
-      if (selectedGroup === 'GROUP_ELEC') {
-        return ['ELEC_NORMAL', 'ELEC_EMERGENCY'].includes(category);
-      }
-      if (selectedGroup === 'GROUP_FIRE') {
-        return ['FIRE'].includes(category);
-      }
+      if (selectedGroup === 'GROUP_PIPE') return ['WATER_SUPPLY', 'DRAIN', 'SANITARY'].includes(category);
+      if (selectedGroup === 'GROUP_DUCT') return ['HVAC_SUPPLY', 'HVAC_EXHAUST', 'KITCHEN_EXHAUST'].includes(category);
+      if (selectedGroup === 'GROUP_ELEC') return ['ELEC_NORMAL', 'ELEC_EMERGENCY'].includes(category);
+      if (selectedGroup === 'GROUP_FIRE') return ['FIRE'].includes(category);
       return true;
     }
 
     // ==========================================
-    // 11. 전체 도면 렌더링 (외벽, 매장, 방화구역, 덕트 5배 두께)
+    // 13. 전체 도면 렌더링
     // ==========================================
     function renderAll() {
       renderWallAndSpecialZones();
@@ -1932,13 +2006,12 @@
       renderFloorButtons();
     }
 
-    // 건물 외벽 및 방화/제연구역 렌더링
+    // 외벽 & 방화구역/제연구역 렌더링
     function renderWallAndSpecialZones() {
       const wallLayer = document.getElementById('wallLayer');
       const fzLayer = document.getElementById('fireSmokeZoneLayer');
       if (!wallLayer || !fzLayer) return;
 
-      // 외벽 (기본 외벽 유지 + 직접 그린 외벽 추가)
       const userWalls = planObjectsData.filter(o => o.floor === currentFloor && o.type === 'WALL');
       let wallSvg = '<rect id="baseOuterWall" x="20" y="20" width="900" height="560" fill="none" stroke="#0f172a" stroke-width="6"/>';
       userWalls.forEach(w => {
@@ -1949,14 +2022,12 @@
       });
       wallLayer.innerHTML = wallSvg;
 
-      // 방화구역 & 제연구역 (두꺼운 붉은색 점선)
       const specialZones = shopsData.filter(s => (s.floor === currentFloor || (!s.floor && currentFloor === '2F')) && (s.zone_type === 'FIRE_ZONE' || s.zone_type === 'SMOKE_ZONE'));
       fzLayer.innerHTML = specialZones.map(z => {
-        const strokeColor = '#dc2626';
         if (z.polygon && z.polygon.length >= 3) {
           const ptsStr = z.polygon.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join(' ');
           return `
-            <polygon points="${ptsStr}" fill="rgba(220, 38, 38, 0.08)" stroke="${strokeColor}" stroke-width="4" stroke-dasharray="8 4" class="cursor-pointer" onclick="openPlanObjectModal('${z.id || z.name}')"/>
+            <polygon points="${ptsStr}" fill="rgba(220, 38, 38, 0.08)" stroke="#dc2626" stroke-width="4" stroke-dasharray="8 4" class="cursor-pointer" onclick="openPlanObjectModal('${z.id || z.name}')"/>
             <text x="${z.polygon[0].x + 10}" y="${z.polygon[0].y + 15}" font-size="10" font-weight="bold" fill="#dc2626">[${z.zone_type === 'FIRE_ZONE' ? '방화구역' : '제연구역'}] ${z.name}</text>
           `;
         }
@@ -1964,14 +2035,13 @@
       }).join('');
     }
 
-    // 도면 구역 렌더링 (매장, EPS, 공조실, PS, AV, PD)
+    // 매장, EPS, 공조실, PS, AV(알람벨브), PD 구역 렌더링
     function renderShopsLayer() {
       const layer = document.getElementById('shopsLayer');
       if (!layer) return;
 
       const currentFloorShops = shopsData.filter(s => {
         const matchFloor = s.floor === currentFloor || (!s.floor && currentFloor === '2F');
-        // 외벽이나 방화/제연구역은 전용 레이어에서 렌더링
         return matchFloor && s.zone_type !== 'WALL' && s.zone_type !== 'FIRE_ZONE' && s.zone_type !== 'SMOKE_ZONE';
       });
 
@@ -1979,17 +2049,14 @@
         const isSelected = selectedStore === s.name;
         const typeMeta = PLAN_OBJ_META[s.zone_type || 'STORE'] || PLAN_OBJ_META['STORE'];
 
-        const rectFill = isSelected
-          ? (currentTheme === 'light' ? '#e0f2fe' : '#0369a1')
-          : (isMapEditMode ? typeMeta.fill : (typeMeta.fill || 'var(--shop-fill)'));
-        const rectStroke = isSelected ? '#0284c7' : (isMapEditMode ? (typeMeta.border || '#f97316') : (typeMeta.border || 'var(--shop-border)'));
-        const strokeWidth = isSelected ? '3' : (isMapEditMode ? '2.5' : (typeMeta.strokeWidth || '2'));
+        const rectFill = isSelected ? (currentTheme === 'light' ? '#e0f2fe' : '#0369a1') : (typeMeta.fill || 'var(--shop-fill)');
+        const rectStroke = isSelected ? '#0284c7' : (typeMeta.border || 'var(--shop-border)');
+        const strokeWidth = isSelected ? '3' : (typeMeta.strokeWidth || '2');
 
         const clickAction = (isMapEditMode || isDrawingPlanMode)
           ? `openPlanObjectModal('${s.id || s.name}')`
           : `selectStore('${s.name}')`;
 
-        // A. 직접 그린 다각형 구역인 경우
         if (s.polygon && s.polygon.length >= 3) {
           const ptsStr = s.polygon.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join(' ');
           const cx = Math.round(s.polygon.reduce((sum, p) => sum + p.x, 0) / s.polygon.length);
@@ -2004,7 +2071,6 @@
           `;
         }
 
-        // B. 표준 슬롯 구역인 경우
         const slot = SHOP_SLOTS[idx % SHOP_SLOTS.length];
         return `
           <g class="shop-box" data-shop="${s.name}" onclick="${clickAction}">
@@ -2016,7 +2082,7 @@
       }).join('');
     }
 
-    // 도면 배관 및 덕트 렌더링 (덕트: 선두께 5배 = 17.5px, 투명도 50%, 녹색 통일)
+    // 도면 배관/덕트 렌더링
     function renderPipes() {
       const layer = document.getElementById('pipePathLayer');
       if (!layer) return;
@@ -2033,7 +2099,6 @@
         const isClosed = p.valve_open === false;
         const isDuct = ['HVAC_SUPPLY', 'HVAC_EXHAUST', 'KITCHEN_EXHAUST'].includes(p.category);
 
-        // 덕트는 두께 5배(17.5px), 녹색(#16a34a), 투명도 50%
         const strokeWidth = isDuct ? 17.5 : 3.5;
         const strokeColor = isDuct ? '#16a34a' : (p.color || PIPE_COLOR_MAP[p.category] || '#0284c7');
         const strokeOpacity = isDuct ? 0.5 : (p.isDraft ? 0.85 : 1.0);
@@ -2075,7 +2140,6 @@
     function renderPipesList() {
       const c = document.getElementById('pipesListContainer');
       if (!c) return;
-
       const floorPipes = pipesData.filter(p => p.floor === currentFloor || (!p.floor && currentFloor === '2F'));
 
       c.innerHTML = floorPipes.map(p => {
@@ -2093,17 +2157,13 @@
       }).join('');
     }
 
-    // 시설물 핀 렌더링
     function renderFacilities() {
       const layer = document.getElementById('pinLayer');
       if (!layer) return;
-
       const floorFacs = facilitiesData.filter(f => {
         const matchFloor = f.floor === currentFloor || (!f.floor && currentFloor === '2F');
-        const matchGrp = matchesGroupFilter(f.category);
-        return matchFloor && matchGrp;
+        return matchFloor && matchesGroupFilter(f.category);
       });
-
       layer.innerHTML = floorFacs.map(f => {
         const color = f.category === 'FIRE' ? '#dc2626' : f.category === 'ELEC' ? '#ea580c' : '#16a34a';
         return `
@@ -2115,25 +2175,19 @@
       }).join('');
     }
 
-    // 층 버튼 렌더링
     function renderFloorButtons() {
       const grp = document.getElementById('floorButtonGroup');
       if (!grp) return;
-
-      grp.innerHTML = floorList.map(fl => {
-        const isActive = fl === currentFloor;
-        return `
-          <button onclick="changeFloor('${fl}')" class="floor-btn ${isActive ? 'active-floor font-bold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'border border-[var(--border)] hover:bg-[var(--sidebar)]'} py-1.5 text-xs font-mono rounded">
-            ${fl}
-          </button>
-        `;
-      }).join('');
+      grp.innerHTML = floorList.map(fl => `
+        <button onclick="changeFloor('${fl}')" class="floor-btn ${fl === currentFloor ? 'active-floor font-bold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'border border-[var(--border)] hover:bg-[var(--sidebar)]'} py-1.5 text-xs font-mono rounded">
+          ${fl}
+        </button>
+      `).join('');
     }
 
     function changeFloor(targetFloor) {
       currentFloor = targetFloor;
-      const meta = FLOOR_METAS[targetFloor] || { name: targetFloor, title: `${targetFloor} 평면도 관제 화면`, coreTop: 'EV / E/S 코어', coreBottom: '기계실 / 방재실' };
-
+      const meta = FLOOR_METAS[targetFloor] || { name: targetFloor, title: `${targetFloor} 평면도 관제 화면`, coreTop: 'EV / 코어', coreBottom: '기계실 / 방재실' };
       const floorBadge = document.getElementById('headerFloorBadge');
       const floorLabel = document.getElementById('currentFloorLabel');
       const statusText = document.getElementById('cadStatusText');
@@ -2150,7 +2204,6 @@
       renderAll();
     }
 
-    // 맵 편집 모드 토글
     function toggleMapEditMode() {
       if (currentUser.role === 'guest') {
         alert('게스트는 맵 편집 권한이 없습니다.');
@@ -2179,12 +2232,10 @@
       if (cadStatus) {
         cadStatus.innerText = isMapEditMode ? `[${currentFloor}] 맵 편집 모드: 구역을 클릭하여 속성을 편집하세요` : `${currentFloor} 평면도 관제 화면`;
       }
-
       document.body.classList.toggle('map-edit-active', isMapEditMode);
       renderShopsLayer();
     }
 
-    // 매장 집중 관제 (선택)
     function selectStore(shopName) {
       if (isMapEditMode || isDrawingPipeMode || isDrawingPlanMode) return;
       if (selectedStore === shopName) {
@@ -2266,7 +2317,6 @@
       document.querySelectorAll('.shop-list-item').forEach(el => el.classList.remove('border-blue-500', 'bg-blue-50/60', 'dark:bg-blue-950/40'));
     }
 
-    // 층 추가 / 삭제
     function openAddFloorModal() {
       if (currentUser.role === 'guest') {
         alert('게스트는 층 추가 권한이 없습니다.');
@@ -2283,43 +2333,28 @@
     function submitNewFloor() {
       const code = document.getElementById('newFloorCode').value.trim().toUpperCase();
       const name = document.getElementById('newFloorName').value.trim();
-
-      if (!code) {
-        alert('층 코드를 입력하세요.');
-        return;
-      }
+      if (!code) return;
       if (floorList.includes(code)) {
         alert('이미 존재하는 층 코드입니다.');
         return;
       }
-
       floorList.unshift(code);
       localStorage.setItem('avenuel_floor_list', JSON.stringify(floorList));
       FLOOR_METAS[code] = { name: name || `${code} 구역`, title: `${code} 평면도 관제 화면`, coreTop: 'EV / 코어', coreBottom: 'EPS / 기계실' };
 
-      // 기본 구역 생성
       ['구역 1', '구역 2', '구역 3', '구역 4'].forEach((zName, i) => {
-        shopsData.push({
-          name: `${code} ${zName}`, code: `${code}-0${i+1}`, desc: '신규 구역', pipe_count: 0, floor: code, zone_type: 'STORE'
-        });
+        shopsData.push({ name: `${code} ${zName}`, code: `${code}-0${i+1}`, desc: '신규 구역', pipe_count: 0, floor: code, zone_type: 'STORE' });
       });
 
       saveLocalCache();
       renderFloorButtons();
       closeAddFloorModal();
       changeFloor(code);
-      alert(`[${code}] 층이 추가되었습니다.`);
     }
 
     function deleteCurrentFloor() {
-      if (currentUser.role === 'guest') {
-        alert('게스트는 층 삭제 권한이 없습니다.');
-        return;
-      }
-      if (floorList.length <= 1) {
-        alert('최소 1개 이상의 층이 유지되어야 합니다.');
-        return;
-      }
+      if (currentUser.role === 'guest') return;
+      if (floorList.length <= 1) return;
       if (!confirm(`현재 보고 있는 [${currentFloor}] 층을 삭제하시겠습니까?`)) return;
 
       const targetFloor = currentFloor;
@@ -2333,10 +2368,8 @@
 
       saveLocalCache();
       changeFloor(floorList[0]);
-      alert(`[${targetFloor}] 층이 삭제되었습니다.`);
     }
 
-    // 도면 팬 & 줌
     function updateSceneTransform() {
       const group = document.getElementById('sceneGroup');
       if (group) group.setAttribute('transform', `translate(${panX}, ${panY}) scale(${currentZoom})`);
@@ -2412,12 +2445,6 @@
       }, { passive: false });
     }
 
-    function getDistance(t1, t2) {
-      const dx = t1.clientX - t2.clientX;
-      const dy = t1.clientY - t2.clientY;
-      return Math.sqrt(dx * dx + dy * dy);
-    }
-
     function toggleTheme() {
       const html = document.documentElement;
       if (currentTheme === 'light') {
@@ -2474,13 +2501,8 @@
       }
     }
 
-    // ==========================================
-    // 12. Supabase, 백업, 캐시
-    // ==========================================
     function initPwaAndNetwork() {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
-      }
+      if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
       function updateNetworkStatus() {
         const isOnline = navigator.onLine;
         const b = document.getElementById('offlineBadge');
@@ -2531,10 +2553,7 @@
     async function saveSupabaseConfig() {
       const url = document.getElementById('sbUrlInput').value.trim();
       const key = document.getElementById('sbKeyInput').value.trim();
-      if (!url || !key) {
-        alert('Supabase URL과 Key를 입력하세요.');
-        return;
-      }
+      if (!url || !key) return;
       localStorage.setItem('avenuel_sb_url', url);
       localStorage.setItem('avenuel_sb_key', key);
       try {
@@ -2578,10 +2597,7 @@
     }
 
     async function syncSeedToSupabase() {
-      if (!supabaseClient) {
-        alert('Supabase 설정을 먼저 저장하세요.');
-        return;
-      }
+      if (!supabaseClient) return;
       if (!confirm('현재 전 층 데이터를 Supabase에 일괄 동기화하시겠습니까?')) return;
       try {
         await supabaseClient.from('shops').upsert(shopsData.map(s => ({
@@ -2625,7 +2641,6 @@
       `).join('');
     }
 
-    // 캐시 저장 / 복원
     function saveLocalCache() {
       try {
         localStorage.setItem('avenuel_offline_data', JSON.stringify({
@@ -2669,7 +2684,7 @@
         { name: '구찌', code: 'GUCCI', desc: '급수(50A), 주방배기덕트', pipe_count: 2, floor: '2F', zone_type: 'STORE' },
         { name: '롤렉스', code: 'ROLEX', desc: '공조덕트, 분전반', pipe_count: 1, floor: '2F', zone_type: 'STORE' },
         { name: '2F EPS실', code: 'EPS-2F', desc: '전기 간선 피트실', pipe_count: 1, floor: '2F', zone_type: 'EPS' },
-        { name: '2F 공조실', code: 'AHU-2F', desc: '공조 환기 기계실', pipe_count: 1, floor: '2F', zone_type: 'AHU' }
+        { name: '2F 알람벨브실', code: 'AV-2F', desc: '소방 알람벨브 점검실', pipe_count: 1, floor: '2F', zone_type: 'AV' }
       ];
 
       pipesData = [
@@ -2683,11 +2698,10 @@
       facilitiesData = [
         { id: 'F-101', name: '샤넬 옥내소화전 2-1', shop: '샤넬', category: 'FIRE', floor: '2F', x: 50, y: 50 },
         { id: 'F-102', name: '샤넬 조명 분전반 LP-2A', shop: '샤넬', category: 'ELEC', floor: '2F', x: 170, y: 50 },
-        { id: 'F-103', name: '에르메스 소방 밸브 스테이션', shop: '에르메스', category: 'FIRE', floor: '2F', x: 220, y: 50 }
+        { id: 'F-103', name: '2F 알람벨브 1차측 밸브', shop: '2F 알람벨브실', category: 'FIRE', floor: '2F', x: 220, y: 50 }
       ];
     }
 
-    // 진입점
     document.addEventListener('DOMContentLoaded', () => {
       initPwaAndNetwork();
       initSupabase();
