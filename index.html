@@ -479,34 +479,36 @@
       <main class="flex-1 flex flex-col bg-[var(--cad-paper)] relative overflow-hidden transition-colors duration-200">
         
         <!-- 캔버스 상단 미니 툴바 -->
-        <div class="h-8 sm:h-9 border-b border-[var(--border)] bg-[var(--card)]/90 backdrop-blur px-2.5 sm:px-3 flex items-center justify-between text-xs z-10 shrink-0 gap-1.5">
-          <div class="flex items-center gap-1.5 min-w-0">
-            <span class="font-bold text-[var(--foreground)] text-[11px] sm:text-xs truncate shrink-0" id="cadStatusText">2F 평면도</span>
+        <div class="h-8 sm:h-9 border-b border-[var(--border)] bg-[var(--card)]/90 backdrop-blur px-2.5 sm:px-3 flex items-center justify-between text-xs z-10 shrink-0 gap-2">
+          <!-- 좌측: 평면도 타이틀 + 소방핀 요약 뱃지 + 검색창 -->
+          <div class="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+            <span class="font-medium text-[var(--foreground)] text-[11px] sm:text-xs truncate shrink-0" id="cadStatusText">2F 평면도</span>
             
-            <!-- 소방 시설물 수량 통계 뱃지 (소화전, 소화기 층별 & 전체 실시간 확인) -->
-            <div onclick="openSafetyStatsModal()" id="pinStatsSummaryBadge" class="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-900 bg-rose-50/70 dark:bg-rose-950/40 text-[10px] sm:text-[11px] cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors shrink-0" title="소방 시설물(소화전, 소화기, 비상계단) 층별/전체 수량 통계 확인">
-              <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-              <span class="font-bold text-rose-700 dark:text-rose-300">소방핀:</span>
-              <span id="pinStatsSummaryText" class="font-medium text-[var(--foreground)] truncate">소화전: 2F 4개(전체 18) | 소화기: 2F 12개(전체 45)</span>
+            <!-- 소방 시설물 수량 통계 뱃지 (클릭 시 현황표 모달 오픈) -->
+            <div onclick="openSafetyStatsModal()" id="pinStatsSummaryBadge" class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded border border-[var(--border)] bg-[var(--sidebar)] text-[10px] sm:text-[11px] cursor-pointer hover:border-slate-400 transition-colors shrink min-w-0 max-w-[200px] md:max-w-xs lg:max-w-md" title="소방 시설물(소화전, 청정소화기, 분말소화기, 비상계단) 층별/전체 수량 통계 확인">
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+              <span class="font-medium text-rose-600 dark:text-rose-400 shrink-0">소방핀</span>
+              <span id="pinStatsSummaryText" class="font-mono text-[var(--foreground)] truncate">2F [🚒 0 · 🧯 0 · 🏃 0]</span>
             </div>
 
             <!-- 통합 실시간 검색창 -->
-            <div class="relative flex items-center">
-              <input id="quickSearchInput" type="text" placeholder="검색 (/)" oninput="handleQuickSearch(this.value)" class="w-16 sm:w-28 h-6 px-1.5 text-[10px] sm:text-[11px] rounded border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:border-blue-500 placeholder:text-[var(--muted-foreground)]" title="매장, 선로, 구역 검색 (단축키: /)"/>
-            </div>
-
-            <!-- 실행 취소(Undo) / 다시 실행(Redo) -->
-            <div class="flex items-center gap-0.5 shrink-0 border-l border-[var(--border)] pl-1">
-              <button onclick="performUndo()" class="p-1 rounded hover:bg-[var(--sidebar)] text-[var(--foreground)]" title="실행 취소 (Ctrl+Z)">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"/></svg>
-              </button>
-              <button onclick="performRedo()" class="p-1 rounded hover:bg-[var(--sidebar)] text-[var(--foreground)]" title="다시 실행 (Ctrl+Y)">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3"/></svg>
-              </button>
+            <div class="relative flex items-center shrink-0">
+              <input id="quickSearchInput" type="text" placeholder="검색 (/)" oninput="handleQuickSearch(this.value)" class="w-16 sm:w-24 md:w-28 h-6 px-1.5 text-[10px] sm:text-[11px] rounded border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:border-blue-500 placeholder:text-[var(--muted-foreground)]" title="매장, 선로, 구역 검색 (단축키: /)"/>
             </div>
           </div>
 
+          <!-- 우측 도구 바: 실행취소/다시실행 + 치수 + 눈금 + 레이어 + 출력 + 노트 + 층불러오기 -->
           <div class="flex items-center gap-1 shrink-0 overflow-x-auto custom-scrollbar py-0.5">
+            <!-- 실행 취소(Undo) / 다시 실행(Redo) (우측 도구 그룹 선두에 독립 배치하여 겹침 원천 방지) -->
+            <div class="flex items-center gap-0.5 pr-1 border-r border-[var(--border)] shrink-0">
+              <button onclick="performUndo()" class="p-1 rounded hover:bg-[var(--sidebar)] text-[var(--foreground)] transition-colors" title="실행 취소 (Ctrl+Z)">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"/></svg>
+              </button>
+              <button onclick="performRedo()" class="p-1 rounded hover:bg-[var(--sidebar)] text-[var(--foreground)] transition-colors" title="다시 실행 (Ctrl+Y)">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3"/></svg>
+              </button>
+            </div>
+
             <!-- 치수 및 차단밸브 라벨 토글 -->
             <button onclick="togglePipeLabels()" id="pipeLabelToggleBtn" class="px-1.5 py-0.5 rounded border border-[var(--border)] hover:bg-[var(--sidebar)] text-[10px] sm:text-[11px] font-medium flex items-center gap-1" title="관경/치수 및 차단밸브 인라인 라벨 온/오프">
               <span class="w-1.5 h-1.5 rounded-full bg-slate-400" id="labelStatusDot"></span>
@@ -3901,7 +3903,9 @@
 
       const txt = document.getElementById('pinStatsSummaryText');
       if (txt) {
-        txt.innerText = `소화전: ${currentFloor} ${curHydrants}개(전체 ${totHydrants}) | 청정: ${currentFloor} ${curClean}개(전체 ${totClean}) | 분말: ${currentFloor} ${curPowder}개(전체 ${totPowder}) | 계단: ${currentFloor} ${curStairs}개(전체 ${totStairs})`;
+        const floorTotal = curHydrants + curClean + curPowder + curStairs;
+        const bldgTotal = totHydrants + totClean + totPowder + totStairs;
+        txt.innerText = `${currentFloor} [🚒 ${curHydrants} · 🧯청정 ${curClean} · 🧯분말 ${curPowder} · 🏃계단 ${curStairs}] (전체 ${bldgTotal})`;
       }
     }
 
