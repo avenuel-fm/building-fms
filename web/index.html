@@ -163,6 +163,57 @@
     body.space-pan-active.is-panning.mode-drawing-plan #viewport {
       cursor: grabbing !important;
     }
+  
+    /* CAD 도면 인쇄 및 PDF 출력 전용 스타일 */
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 10mm;
+      }
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      header, aside, #cadMiniToolbar, #rulerTop, #rulerLeft, #cadZoomControls, 
+      #cadMobileFab, #selectionBoundingBox, #rubberBandBox, #crosshairGroup,
+      #pinAddingFloatingBar, #activeModeBadge, .modal, [id$="Modal"], [id$="Dropdown"], #toastContainer {
+        display: none !important;
+      }
+      main {
+        width: 100vw !important;
+        height: 100vh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        overflow: visible !important;
+      }
+      #viewport {
+        width: 100% !important;
+        height: 100% !important;
+        border: none !important;
+      }
+      #cadSvg {
+        width: 100% !important;
+        height: 100% !important;
+        background: #ffffff !important;
+      }
+      #printHeaderInfo {
+        display: block !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 8px 12px;
+        border-bottom: 2px solid #0f172a;
+        background: #ffffff;
+        font-family: sans-serif;
+      }
+    }
+    #printHeaderInfo {
+      display: none;
+    }
   </style>
 </head>
 <body class="bg-[var(--background)] text-[var(--foreground)] antialiased m-0 p-0 overflow-hidden font-sans select-none text-[13px] transition-colors duration-200">
@@ -187,7 +238,7 @@
           
           <!-- 실시간 동기화 상태 뱃지 -->
           <span id="realtimeBadge" class="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 shrink-0" title="Supabase 실시간 동기화 활성화됨">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
             <span>실시간</span>
           </span>
 
@@ -370,20 +421,32 @@
               <button onclick="togglePinAddMenu(event)" id="addPinBtn" class="w-full py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate transition-colors">
                 핀 추가
               </button>
-              <div id="pinAddMenuDropdown" class="hidden absolute left-0 bottom-full mb-1 w-44 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-xl p-1.5 z-50 text-xs">
-                <div class="font-bold text-[10px] text-[var(--muted-foreground)] px-2 py-1 border-b border-[var(--border)] mb-1">소방/피난 시설 핀 선택</div>
+              <div id="pinAddMenuDropdown" class="hidden absolute left-0 bottom-full mb-1 w-48 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-xl p-1.5 z-50 text-xs">
+                <div class="font-medium text-[10px] text-[var(--muted-foreground)] px-2 py-1 border-b border-[var(--border)] mb-1 flex items-center justify-between">
+                  <span>소방/피난 핀 선택</span>
+                  <button onclick="cancelPinAddMode(); togglePinAddMenu(event);" class="text-[10px] text-rose-600 hover:underline">배치 취소</button>
+                </div>
                 <button onclick="setPinAddType('FIRE_HYDRANT')" class="w-full text-left px-2 py-1.5 rounded hover:bg-[var(--sidebar)] flex items-center justify-between">
-                  <span class="font-bold text-rose-600">소화전</span>
-                  <span class="text-[10px] text-[var(--muted-foreground)]">옥내소화전</span>
+                  <span class="font-medium text-rose-600 flex items-center gap-1.5"><span>🚒</span> 옥내소화전</span>
+                  <span class="text-[10px] text-[var(--muted-foreground)] font-mono">소화전</span>
                 </button>
-                <button onclick="setPinAddType('FIRE_EXTINGUISHER')" class="w-full text-left px-2 py-1.5 rounded hover:bg-[var(--sidebar)] flex items-center justify-between">
-                  <span class="font-bold text-amber-600">소화기</span>
-                  <span class="text-[10px] text-[var(--muted-foreground)]">분말소화기</span>
+                <button onclick="setPinAddType('CLEAN_EXTINGUISHER')" class="w-full text-left px-2 py-1.5 rounded hover:bg-[var(--sidebar)] flex items-center justify-between">
+                  <span class="font-medium text-sky-600 flex items-center gap-1.5"><span>🧯</span> 청정소화기</span>
+                  <span class="text-[10px] text-[var(--muted-foreground)] font-mono">가스계</span>
+                </button>
+                <button onclick="setPinAddType('POWDER_EXTINGUISHER')" class="w-full text-left px-2 py-1.5 rounded hover:bg-[var(--sidebar)] flex items-center justify-between">
+                  <span class="font-medium text-amber-600 flex items-center gap-1.5"><span>🧯</span> 분말소화기</span>
+                  <span class="text-[10px] text-[var(--muted-foreground)] font-mono">ABC분말</span>
                 </button>
                 <button onclick="setPinAddType('EMERGENCY_STAIRS')" class="w-full text-left px-2 py-1.5 rounded hover:bg-[var(--sidebar)] flex items-center justify-between">
-                  <span class="font-bold text-emerald-600">비상계단</span>
-                  <span class="text-[10px] text-[var(--muted-foreground)]">피난구</span>
+                  <span class="font-medium text-emerald-600 flex items-center gap-1.5"><span>🏃</span> 비상계단</span>
+                  <span class="text-[10px] text-[var(--muted-foreground)] font-mono">피난구</span>
                 </button>
+                <div class="pt-1 mt-1 border-t border-[var(--border)]">
+                  <button onclick="cancelPinAddMode(); togglePinAddMenu(event);" class="w-full text-center py-1 rounded bg-[var(--sidebar)] hover:bg-[var(--border)] text-[11px] font-medium text-[var(--foreground)]">
+                    핀 배치 종료 (ESC)
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -400,9 +463,15 @@
             </button>
           </div>
 
-          <button onclick="openBackupModal()" class="w-full py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate">
-            Supabase & 백업 관리
-          </button>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button onclick="printCadDrawing()" class="py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate transition-colors flex items-center justify-center gap-1">
+              <svg class="w-3.5 h-3.5 text-[var(--muted-foreground)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+              <span>도면 출력</span>
+            </button>
+            <button onclick="openBackupModal()" class="py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate transition-colors">
+              백업 관리
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -461,6 +530,12 @@
               </div>
             </div>
 
+            <!-- 도면 출력 (인쇄 / PDF 저장) -->
+            <button onclick="printCadDrawing()" class="px-2 py-0.5 rounded border border-[var(--border)] hover:bg-[var(--sidebar)] text-[10px] sm:text-[11px] font-medium flex items-center gap-1 text-[var(--foreground)] transition-colors" title="현재 CAD 도면을 인쇄하거나 PDF로 저장합니다">
+              <svg class="w-3 h-3 text-[var(--muted-foreground)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24-1.077-.32-2.164-.32-3.229 0-3.314 2.686-6 6-6s6 2.686 6 6c0 1.065-.08 2.152-.32 3.229M6.72 13.829A10.007 10.007 0 003 18.75m3.72-4.921A9.972 9.972 0 0112 12c1.94 0 3.73.553 5.28 1.508m0 0A10.007 10.007 0 0121 18.75M6 18.75h12m-6 3.75v-3.75"/></svg>
+              <span>출력</span>
+            </button>
+
             <!-- 1. 노트 버튼 (빨간색 자유 그리기, 완료 시 JPG 저장) -->
             <button onclick="toggleNoteMode()" id="noteBtn" class="px-2 py-0.5 rounded border border-rose-300 dark:border-rose-900 bg-rose-50/80 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 transition-colors" title="도면 위에 빨간색 자유 메모를 작성하고 완료 시 JPG 파일로 저장합니다">
               <svg class="w-3 h-3 text-rose-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
@@ -500,8 +575,31 @@
             <svg id="rulerLeftSvg" class="w-full h-full"></svg>
           </div>
 
-          <!-- CAD 뷰포트 영역 -->
-          <div id="viewport" class="flex-1 relative overflow-hidden cad-grid cursor-grab active:cursor-grabbing touch-none">
+        <!-- 플로팅 핀 배치 인디케이터 바 -->
+        <div id="pinAddingFloatingBar" class="hidden absolute top-12 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 rounded-md bg-slate-900/90 dark:bg-slate-100/90 text-white dark:text-slate-900 text-xs shadow-lg flex items-center gap-2.5 backdrop-blur">
+          <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+          <span id="pinAddingFloatingText" class="font-medium">핀 배치 모드: 도면 원하는 위치를 클릭하세요</span>
+          <button onclick="cancelPinAddMode()" class="px-2 py-0.5 rounded bg-white/20 dark:bg-black/20 hover:bg-white/30 text-[11px] font-medium transition-colors">
+            배치 종료 (ESC)
+          </button>
+        </div>
+
+        <!-- 인쇄 전용 헤더 정보 (인쇄 시에만 보임) -->
+        <div id="printHeaderInfo">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <h2 style="margin:0; font-size:16px; font-weight:bold;">잠실 에비뉴엘 FMS 시설물 관제 도면</h2>
+              <div id="printSubTitle" style="font-size:12px; color:#475569; margin-top:2px;">2F 평면도 관제 화면</div>
+            </div>
+            <div style="text-align:right; font-size:11px; color:#64748b;">
+              <div id="printDateText">출력일시: 2026-11-14</div>
+              <div>롯데물산 시설안전관리팀</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CAD 뷰포트 영역 -->
+        <div id="viewport" class="flex-1 relative overflow-hidden cad-grid cursor-grab active:cursor-grabbing touch-none">
             <svg id="cadSvg" class="w-full h-full select-none" viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid meet">
               <g id="sceneGroup" transform="translate(40, 30) scale(0.92)">
                 
@@ -576,7 +674,7 @@
                 <polyline id="tempPolyline" points="" stroke="#0284c7" stroke-width="3.5" fill="none" stroke-dasharray="6 3" class="hidden"/>
 
                 <!-- 도면 그리기 시 실시간 외곽 다각형 미리보기 (내부선 없음) -->
-                <polygon id="tempPlanPolygon" points="" stroke="#6366f1" stroke-width="2.5" fill="rgba(99, 102, 241, 0.15)" stroke-dasharray="4 2" class="hidden"/>
+                <polyline id="tempPlanPolygon" points="" stroke="#6366f1" stroke-width="2.5" fill="none" stroke-dasharray="4 2" class="hidden"/>
               </g>
             </svg>
           </div>
@@ -639,7 +737,7 @@
       <!-- PIN 로그인 뷰 -->
       <div id="pinLoginView" class="space-y-3">
         <div class="text-center text-xs text-[var(--muted-foreground)]">
-          등록된 4자리 PIN 번호를 입력하세요<br><span class="text-[10px] text-indigo-600 font-medium">소장: 0621 / 관리자: 1234 / 직원: 5678</span>
+          등록된 4자리 PIN 번호를 입력하세요
         </div>
         <div class="flex justify-center">
           <input type="password" id="pinInput" maxlength="4" class="w-32 text-center tracking-[0.5em] text-xl font-bold py-1.5 rounded border border-[var(--border)] bg-[var(--background)]" placeholder="••••" readonly>
@@ -961,12 +1059,13 @@
           <table class="w-full text-center border-collapse">
             <thead class="bg-[var(--sidebar)] text-[var(--muted-foreground)] text-[11px] border-b border-[var(--border)]">
               <tr>
-                <th class="py-1.5 px-2 text-left">층</th>
-                <th class="py-1.5 px-2 text-rose-600 font-bold">소화전</th>
-                <th class="py-1.5 px-2 text-amber-600 font-bold">소화기</th>
-                <th class="py-1.5 px-2 text-emerald-600 font-bold">비상계단</th>
-                <th class="py-1.5 px-2 font-bold">소계</th>
-                <th class="py-1.5 px-2">도면 이동</th>
+                <th class="py-1.5 px-2 text-left font-medium">층</th>
+                <th class="py-1.5 px-2 text-rose-600 font-medium">소화전 (🚒)</th>
+                <th class="py-1.5 px-2 text-sky-600 font-medium">청정소화기 (🧯)</th>
+                <th class="py-1.5 px-2 text-amber-600 font-medium">분말소화기 (🧯)</th>
+                <th class="py-1.5 px-2 text-emerald-600 font-medium">비상계단 (🏃)</th>
+                <th class="py-1.5 px-2 font-medium">소계</th>
+                <th class="py-1.5 px-2 font-medium">이동</th>
               </tr>
             </thead>
             <tbody id="safetyStatsTableBody" class="divide-y divide-[var(--border)]"></tbody>
@@ -1094,7 +1193,7 @@
     
     <!-- 상단 안내 뱃지 -->
     <div class="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-slate-900/90 text-white text-xs font-semibold shadow-lg backdrop-blur-sm pointer-events-none flex items-center gap-2">
-      <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+      <span class="w-2 h-2 rounded-full bg-rose-500"></span>
       <span>도면 노트 작성 중 (화면 버튼 차단 / 빨간색 자유 그리기)</span>
     </div>
 
@@ -1414,7 +1513,7 @@
 
       updateUserUI();
       closeLoginModal();
-      alert(`PIN 설정이 완료되었습니다! 다음 로그인부터 PIN(${p1})으로 로그인하세요.`);
+      alert(`PIN 설정이 완료되었습니다. 다음 로그인부터 PIN(${p1})으로 로그인하세요.`);
     }
 
     function loginAsGuest() {
@@ -1486,6 +1585,20 @@
       const isGuest = currentUser.role === 'guest';
       const isSojang = currentUser.name === '시설소장';
       const canEdit = isAdm || isStaff;
+
+      // 게스트가 아닌 계정(소장, 관리자, 직원)으로 전환 시 게스트 타이머 완전 해제 및 뱃지 숨김
+      if (!isGuest) {
+        if (guestTimerInterval) {
+          clearInterval(guestTimerInterval);
+          guestTimerInterval = null;
+        }
+        localStorage.removeItem('avenuel_guest_expire');
+        const timerBadge = document.getElementById('guestTimerBadge');
+        if (timerBadge) {
+          timerBadge.classList.add('hidden');
+          timerBadge.classList.remove('inline-flex');
+        }
+      }
 
       const roleBadge = document.getElementById('roleBadge');
       const authBtn = document.getElementById('authMainBtn');
@@ -2299,13 +2412,12 @@
           return;
         }
 
-        // B. 도면 그리기 진행 (5mm 스냅, 곡선 없음)
+        // B. 도면 그리기 진행 (시작점 강제 연결 없이 자유 선분 궤적으로 부드럽게 그리기)
         if (isDrawingPlanMode && isDragDrawingPlan && planDrawPoints.length > 0) {
           const pLast = planDrawPoints[planDrawPoints.length - 1];
-          const snapped = calcLine10mmAnd45SnappedPoint(pLast, svgPt);
-          const dist = Math.hypot(snapped.x - pLast.x, snapped.y - pLast.y);
-          if (dist > 15) {
-            planDrawPoints.push(snapped);
+          const dist = Math.hypot(svgPt.x - pLast.x, svgPt.y - pLast.y);
+          if (dist > 5) {
+            planDrawPoints.push({ x: Math.round(svgPt.x), y: Math.round(svgPt.y) });
             tempPlan.setAttribute('points', planDrawPoints.map(p => `${p.x},${p.y}`).join(' '));
           }
           return;
@@ -2371,9 +2483,8 @@
         } else if (isDrawingPlanMode && isDragDrawingPlan && planDrawPoints.length > 0) {
           e.preventDefault();
           const pLast = planDrawPoints[planDrawPoints.length - 1];
-          const snapped = calcLine10mmAnd45SnappedPoint(pLast, svgPt);
-          if (Math.hypot(snapped.x - pLast.x, snapped.y - pLast.y) > 15) {
-            planDrawPoints.push(snapped);
+          if (Math.hypot(svgPt.x - pLast.x, svgPt.y - pLast.y) > 5) {
+            planDrawPoints.push({ x: Math.round(svgPt.x), y: Math.round(svgPt.y) });
             tempPlan.setAttribute('points', planDrawPoints.map(p => `${p.x},${p.y}`).join(' '));
           }
         }
@@ -2618,7 +2729,7 @@
       renderAll();
 
       const cadStatus = document.getElementById('cadStatusText');
-      if (cadStatus) cadStatus.innerText = `다각형 완성 (꼭지점 ${boundaryPolygon.length}개 / 45도 정렬)! 도형을 클릭하여 외벽, 알람벨브, 방화구역 속성을 설정하세요.`;
+      if (cadStatus) cadStatus.innerText = `다각형 완성 (꼭지점 ${boundaryPolygon.length}개 / 45도 정렬 완료. 도형을 클릭하여 외벽, 알람벨브, 방화구역 속성을 설정하세요.`;
       planDrawPoints = [];
     }
 
@@ -3630,19 +3741,25 @@
     }
 
     // ==========================================
-    // 핀(시설물) 추가 & 소화전/소화기/비상계단 수량 통계 엔진
+    // 핀(시설물) 추가 & 소화전/청정소화기/분말소화기/비상계단 수량 통계 엔진 (이모티콘 적용)
     // ==========================================
     let isAddingPinMode = false;
     let currentPinAddType = 'FIRE_HYDRANT';
 
     const PIN_META = {
-      'FIRE_HYDRANT': { name: '소화전', fullName: '옥내소화전', color: '#dc2626', iconText: 'H', desc: '소방 호스 및 밸브' },
-      'FIRE_EXTINGUISHER': { name: '소화기', fullName: '분말소화기', color: '#ea580c', iconText: 'E', desc: 'ABC 축압식 분말소화기' },
-      'EMERGENCY_STAIRS': { name: '비상계단', fullName: '피난계단/비상구', color: '#16a34a', iconText: 'S', desc: '화재 피난 비상구' }
+      'FIRE_HYDRANT':       { name: '소화전', fullName: '옥내소화전', color: '#dc2626', emoji: '🚒', iconText: 'H', desc: '옥내소화전 방수구함' },
+      'CLEAN_EXTINGUISHER':  { name: '청정소화기', fullName: '청정소화기', color: '#0284c7', emoji: '🧯', iconText: 'C', desc: '가스계 청정소화약제' },
+      'POWDER_EXTINGUISHER': { name: '분말소화기', fullName: '분말소화기', color: '#ea580c', emoji: '🧯', iconText: 'P', desc: 'ABC 축압식 분말소화기' },
+      'EMERGENCY_STAIRS':   { name: '비상계단', fullName: '비상계단/피난구', color: '#16a34a', emoji: '🏃', iconText: 'S', desc: '화재 피난 비상계단' }
     };
 
     function togglePinAddMenu(e) {
       if (e) e.stopPropagation();
+      // 이미 핀 배치 모드인 경우 사이드바 버튼을 누르면 즉시 배치 종료
+      if (isAddingPinMode) {
+        cancelPinAddMode();
+        return;
+      }
       const menu = document.getElementById('pinAddMenuDropdown');
       if (menu) menu.classList.toggle('hidden');
     }
@@ -3656,12 +3773,23 @@
       isAddingPinMode = true;
       const menu = document.getElementById('pinAddMenuDropdown');
       if (menu) menu.classList.add('hidden');
+      
       const btn = document.getElementById('addPinBtn');
       if (btn) {
-        btn.className = 'w-full py-1.5 px-1 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-bold text-xs text-center truncate shadow transition-colors';
-        btn.innerText = `[+] ${PIN_META[type].name} 배치중`;
+        btn.className = 'w-full py-1.5 px-1 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-medium text-xs text-center truncate shadow transition-colors';
+        btn.innerText = '핀 배치 종료 (클릭)';
       }
-      showToast(`도면 원하는 위치를 클릭하여 ${PIN_META[type].fullName} 핀을 배치하세요.`, 600);
+
+      const fBar = document.getElementById('pinAddingFloatingBar');
+      const fText = document.getElementById('pinAddingFloatingText');
+      if (fBar) {
+        fBar.classList.remove('hidden');
+        fBar.classList.add('flex');
+      }
+      if (fText) {
+        fText.innerText = `[${PIN_META[type].fullName} 배치중] 도면 원하는 위치를 클릭하세요`;
+      }
+      showToast(`도면 원하는 위치를 클릭하여 ${PIN_META[type].fullName} 핀을 배치하세요. (종료: ESC)`, 600);
     }
 
     function cancelPinAddMode() {
@@ -3671,6 +3799,12 @@
         btn.className = 'w-full py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate transition-colors';
         btn.innerText = '핀 추가';
       }
+      const fBar = document.getElementById('pinAddingFloatingBar');
+      if (fBar) {
+        fBar.classList.add('hidden');
+        fBar.classList.remove('flex');
+      }
+      showToast('핀 배치가 종료되었습니다.', 500);
     }
 
     function createFacilityPinAt(x, y, pinType) {
@@ -3691,7 +3825,7 @@
       saveLocalCache();
       renderFacilities();
       updatePinStatsSummary();
-      showToast(`[${currentFloor}] ${meta.fullName} 핀이 배치되었습니다.`, 500);
+      showToast(`[${currentFloor}] ${meta.fullName} 핀이 등록되었습니다.`, 500);
     }
 
     function deleteFacilityPin(pinId) {
@@ -3731,35 +3865,43 @@
       });
 
       layer.innerHTML = floorFacs.map(f => {
-        const type = f.pinType || f.category;
-        const meta = PIN_META[type] || {
+        const type = f.pinType || (f.category === 'SAFETY' ? 'EMERGENCY_STAIRS' : (f.name||'').includes('소화전') ? 'FIRE_HYDRANT' : (f.name||'').includes('청정') ? 'CLEAN_EXTINGUISHER' : 'POWDER_EXTINGUISHER');
+        const meta = PIN_META[type] || PIN_META['POWDER_EXTINGUISHER'] || {
           name: f.name || '시설물',
-          color: (f.category === 'FIRE' ? '#dc2626' : f.category === 'ELEC' ? '#ea580c' : '#16a34a'),
-          iconText: (f.category || 'F')[0]
+          color: '#0284c7',
+          emoji: '📍'
         };
 
         return `
           <g class="fac-pin cursor-pointer group" data-id="${f.id}" data-type="${type}" transform="translate(${f.x}, ${f.y})" onclick="handlePinClick(event, '${f.id}')">
-            <circle r="8.5" fill="${meta.color}" stroke="#ffffff" stroke-width="1.8" class="transition-transform group-hover:scale-125 shadow"/>
-            <text y="3.2" text-anchor="middle" font-size="8" fill="#ffffff" font-weight="900" font-family="sans-serif">${meta.iconText}</text>
-            <title>${f.name}</title>
+            <circle r="10" fill="${meta.color}" stroke="#ffffff" stroke-width="1.8" class="transition-colors group-hover:stroke-slate-900 dark:group-hover:stroke-white shadow-sm"/>
+            <text y="4" text-anchor="middle" font-size="10.5" class="select-none pointer-events-none">${meta.emoji}</text>
+            <title>${f.name} (${meta.fullName})</title>
           </g>
         `;
       }).join('');
     }
 
     function updatePinStatsSummary() {
-      // 소화전 갯수: 현재 층 및 전체
-      const curHydrants = facilitiesData.filter(f => (f.floor === currentFloor || (!f.floor && currentFloor === '2F')) && (f.pinType === 'FIRE_HYDRANT' || f.category === 'FIRE_HYDRANT' || ((f.name || '').includes('소화전')))).length;
-      const totHydrants = facilitiesData.filter(f => f.pinType === 'FIRE_HYDRANT' || f.category === 'FIRE_HYDRANT' || ((f.name || '').includes('소화전'))).length;
+      // 1. 소화전 (🚒)
+      const curHydrants = facilitiesData.filter(f => (f.floor === currentFloor || (!f.floor && currentFloor === '2F')) && (f.pinType === 'FIRE_HYDRANT' || ((f.name || '').includes('소화전')))).length;
+      const totHydrants = facilitiesData.filter(f => f.pinType === 'FIRE_HYDRANT' || ((f.name || '').includes('소화전'))).length;
 
-      // 소화기 갯수: 현재 층 및 전체
-      const curExtinguishers = facilitiesData.filter(f => (f.floor === currentFloor || (!f.floor && currentFloor === '2F')) && (f.pinType === 'FIRE_EXTINGUISHER' || f.category === 'FIRE_EXTINGUISHER' || ((f.name || '').includes('소화기')))).length;
-      const totExtinguishers = facilitiesData.filter(f => f.pinType === 'FIRE_EXTINGUISHER' || f.category === 'FIRE_EXTINGUISHER' || ((f.name || '').includes('소화기'))).length;
+      // 2. 청정소화기 (🧯 청록)
+      const curClean = facilitiesData.filter(f => (f.floor === currentFloor || (!f.floor && currentFloor === '2F')) && (f.pinType === 'CLEAN_EXTINGUISHER' || ((f.name || '').includes('청정')))).length;
+      const totClean = facilitiesData.filter(f => f.pinType === 'CLEAN_EXTINGUISHER' || ((f.name || '').includes('청정'))).length;
+
+      // 3. 분말소화기 (🧯 오렌지)
+      const curPowder = facilitiesData.filter(f => (f.floor === currentFloor || (!f.floor && currentFloor === '2F')) && (f.pinType === 'POWDER_EXTINGUISHER' || f.pinType === 'FIRE_EXTINGUISHER' || ((f.name || '').includes('분말') || (f.name || '').includes('소화기') && !(f.name || '').includes('청정')))).length;
+      const totPowder = facilitiesData.filter(f => f.pinType === 'POWDER_EXTINGUISHER' || f.pinType === 'FIRE_EXTINGUISHER' || ((f.name || '').includes('분말') || (f.name || '').includes('소화기') && !(f.name || '').includes('청정'))).length;
+
+      // 4. 비상계단 (🏃 녹색)
+      const curStairs = facilitiesData.filter(f => (f.floor === currentFloor || (!f.floor && currentFloor === '2F')) && (f.pinType === 'EMERGENCY_STAIRS' || f.category === 'SAFETY' || ((f.name || '').includes('계단')))).length;
+      const totStairs = facilitiesData.filter(f => f.pinType === 'EMERGENCY_STAIRS' || f.category === 'SAFETY' || ((f.name || '').includes('계단'))).length;
 
       const txt = document.getElementById('pinStatsSummaryText');
       if (txt) {
-        txt.innerText = `소화전: ${currentFloor} ${curHydrants}개(전체 ${totHydrants}) | 소화기: ${currentFloor} ${curExtinguishers}개(전체 ${totExtinguishers})`;
+        txt.innerText = `소화전: ${currentFloor} ${curHydrants}개(전체 ${totHydrants}) | 청정: ${currentFloor} ${curClean}개(전체 ${totClean}) | 분말: ${currentFloor} ${curPowder}개(전체 ${totPowder}) | 계단: ${currentFloor} ${curStairs}개(전체 ${totStairs})`;
       }
     }
 
@@ -3782,21 +3924,23 @@
       if (title) title.innerText = currentFloor;
 
       if (tbody) {
-        let totalH = 0, totalE = 0, totalS = 0;
+        let totalH = 0, totalC = 0, totalP = 0, totalS = 0;
         const rows = floorList.map(fl => {
-          const h = facilitiesData.filter(f => (f.floor === fl || (!f.floor && fl === '2F')) && (f.pinType === 'FIRE_HYDRANT' || f.category === 'FIRE_HYDRANT' || ((f.name || '').includes('소화전')))).length;
-          const e = facilitiesData.filter(f => (f.floor === fl || (!f.floor && fl === '2F')) && (f.pinType === 'FIRE_EXTINGUISHER' || f.category === 'FIRE_EXTINGUISHER' || ((f.name || '').includes('소화기')))).length;
-          const s = facilitiesData.filter(f => (f.floor === fl || (!f.floor && fl === '2F')) && (f.pinType === 'EMERGENCY_STAIRS' || f.category === 'EMERGENCY_STAIRS' || ((f.name || '').includes('계단')))).length;
-          const sub = h + e + s;
-          totalH += h; totalE += e; totalS += s;
+          const h = facilitiesData.filter(f => (f.floor === fl || (!f.floor && fl === '2F')) && (f.pinType === 'FIRE_HYDRANT' || ((f.name || '').includes('소화전')))).length;
+          const c = facilitiesData.filter(f => (f.floor === fl || (!f.floor && fl === '2F')) && (f.pinType === 'CLEAN_EXTINGUISHER' || ((f.name || '').includes('청정')))).length;
+          const p = facilitiesData.filter(f => (f.floor === fl || (!f.floor && fl === '2F')) && (f.pinType === 'POWDER_EXTINGUISHER' || f.pinType === 'FIRE_EXTINGUISHER' || ((f.name || '').includes('분말') || (f.name || '').includes('소화기') && !(f.name || '').includes('청정')))).length;
+          const s = facilitiesData.filter(f => (f.floor === fl || (!f.floor && fl === '2F')) && (f.pinType === 'EMERGENCY_STAIRS' || f.category === 'SAFETY' || ((f.name || '').includes('계단')))).length;
+          const sub = h + c + p + s;
+          totalH += h; totalC += c; totalP += p; totalS += s;
           const isCur = fl === currentFloor;
           return `
-            <tr class="${isCur ? 'bg-blue-50/70 dark:bg-blue-950/40 font-bold' : 'hover:bg-[var(--sidebar)]'}">
-              <td class="py-1.5 px-2 text-left font-mono">${fl} ${isCur ? '<span class="text-[9px] text-blue-600">(현재)</span>' : ''}</td>
+            <tr class="${isCur ? 'bg-[var(--sidebar)] font-medium' : 'hover:bg-[var(--sidebar)]/50'}">
+              <td class="py-1.5 px-2 text-left font-mono">${fl} ${isCur ? '<span class="text-[9px] text-blue-600 dark:text-blue-400 font-semibold">(현재)</span>' : ''}</td>
               <td class="py-1.5 px-2 text-rose-600 font-mono">${h}</td>
-              <td class="py-1.5 px-2 text-amber-600 font-mono">${e}</td>
+              <td class="py-1.5 px-2 text-sky-600 font-mono">${c}</td>
+              <td class="py-1.5 px-2 text-amber-600 font-mono">${p}</td>
               <td class="py-1.5 px-2 text-emerald-600 font-mono">${s}</td>
-              <td class="py-1.5 px-2 font-mono font-bold">${sub}</td>
+              <td class="py-1.5 px-2 font-mono font-semibold">${sub}</td>
               <td class="py-1.5 px-2">
                 <button onclick="changeFloor('${fl}'); closeSafetyStatsModal();" class="px-2 py-0.5 rounded border border-[var(--border)] text-[10px] hover:bg-[var(--card)]">이동</button>
               </td>
@@ -3805,12 +3949,13 @@
         }).join('');
 
         const totalRow = `
-          <tr class="bg-[var(--sidebar)] font-bold border-t-2 border-[var(--border)] text-[11px]">
-            <td class="py-2 px-2 text-left">전체 합계</td>
-            <td class="py-2 px-2 text-rose-600 font-mono">${totalH}개</td>
-            <td class="py-2 px-2 text-amber-600 font-mono">${totalE}개</td>
-            <td class="py-2 px-2 text-emerald-600 font-mono">${totalS}개</td>
-            <td class="py-2 px-2 font-mono text-[var(--foreground)]">${totalH + totalE + totalS}개</td>
+          <tr class="bg-[var(--sidebar)] font-medium border-t-2 border-[var(--border)] text-[11px]">
+            <td class="py-2 px-2 text-left font-semibold">전체 합계</td>
+            <td class="py-2 px-2 text-rose-600 font-mono font-semibold">${totalH}개</td>
+            <td class="py-2 px-2 text-sky-600 font-mono font-semibold">${totalC}개</td>
+            <td class="py-2 px-2 text-amber-600 font-mono font-semibold">${totalP}개</td>
+            <td class="py-2 px-2 text-emerald-600 font-mono font-semibold">${totalS}개</td>
+            <td class="py-2 px-2 font-mono font-semibold text-[var(--foreground)]">${totalH + totalC + totalP + totalS}개</td>
             <td class="py-2 px-2">-</td>
           </tr>
         `;
@@ -3823,13 +3968,14 @@
           list.innerHTML = `<div class="col-span-2 text-center py-4 text-xs text-[var(--muted-foreground)]">현재 층(${currentFloor})에 등록된 소방/피난 시설 핀이 없습니다. 좌측 '핀 추가'를 이용해 배치하세요.</div>`;
         } else {
           list.innerHTML = curPins.map(p => {
-            const meta = PIN_META[p.pinType || p.category] || { name: '시설물', color: '#0284c7' };
+            const type = p.pinType || (p.category === 'SAFETY' ? 'EMERGENCY_STAIRS' : (p.name||'').includes('소화전') ? 'FIRE_HYDRANT' : (p.name||'').includes('청정') ? 'CLEAN_EXTINGUISHER' : 'POWDER_EXTINGUISHER');
+            const meta = PIN_META[type] || PIN_META['POWDER_EXTINGUISHER'] || { name: '시설물', color: '#0284c7', emoji: '📍' };
             return `
               <div class="p-2 rounded border border-[var(--border)] bg-[var(--card)] flex items-center justify-between text-xs">
                 <div class="flex items-center gap-2 min-w-0 pr-1">
-                  <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-black shrink-0" style="background-color:${meta.color};">${meta.iconText || 'F'}</span>
+                  <span class="w-6 h-6 rounded-md flex items-center justify-center text-sm shadow-sm shrink-0" style="background-color:${meta.color}20; border: 1px solid ${meta.color}50;">${meta.emoji}</span>
                   <div class="truncate">
-                    <div class="font-bold text-[var(--foreground)] truncate">${p.name}</div>
+                    <div class="font-medium text-[var(--foreground)] truncate">${p.name}</div>
                     <div class="text-[10px] text-[var(--muted-foreground)] font-mono">X:${p.x}, Y:${p.y}</div>
                   </div>
                 </div>
@@ -3842,6 +3988,22 @@
           }).join('');
         }
       }
+    }
+
+    // 도면 출력 함수 (인쇄 및 PDF 저장)
+    function printCadDrawing() {
+      const printDate = document.getElementById('printDateText');
+      const printSub = document.getElementById('printSubTitle');
+      if (printDate) {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        printDate.innerText = `출력일시: ${dateStr}`;
+      }
+      if (printSub) {
+        printSub.innerText = `${currentFloor} 평면도 시설물 관제 화면 (롯데물산 FMS)`;
+      }
+      if (typeof zoomToFit === 'function') zoomToFit();
+      window.print();
     }
 
     function focusOnPin(x, y) {
@@ -4257,6 +4419,15 @@
           if (isDrawingPipeMode || isDrawingPlanMode || isMapEditMode || (multiSelectedMap && multiSelectedMap.size > 0)) {
             e.preventDefault();
             deleteSelectedEntities();
+            return;
+          }
+        }
+
+        // ESC 키: 핀 배치 모드 즉시 종료
+        if (e.key === 'Escape' || e.key === 'Esc') {
+          if (typeof isAddingPinMode !== 'undefined' && isAddingPinMode) {
+            e.preventDefault();
+            cancelPinAddMode();
             return;
           }
         }
@@ -5122,18 +5293,18 @@
       ];
 
       facilitiesData = [
-        // 2F 소방/피난 시설 핀
+        // 2F 소방/피난 시설 핀 (4종: 소화전, 청정소화기, 분말소화기, 비상계단)
         { id: 'F-101', name: '2F 옥내소화전 #1', shop: '공용 복도', category: 'FIRE', pinType: 'FIRE_HYDRANT', floor: '2F', x: 60, y: 60 },
         { id: 'F-102', name: '2F 옥내소화전 #2', shop: '공용 복도', category: 'FIRE', pinType: 'FIRE_HYDRANT', floor: '2F', x: 880, y: 60 },
         { id: 'F-103', name: '2F 옥내소화전 #3', shop: '공용 복도', category: 'FIRE', pinType: 'FIRE_HYDRANT', floor: '2F', x: 470, y: 540 },
-        { id: 'F-104', name: '2F 분말소화기 #1', shop: '샤넬 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 140, y: 150 },
-        { id: 'F-105', name: '2F 분말소화기 #2', shop: '에르메스 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 340, y: 150 },
-        { id: 'F-106', name: '2F 분말소화기 #3', shop: '루이비통 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 600, y: 150 },
-        { id: 'F-107', name: '2F 분말소화기 #4', shop: '디올 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 800, y: 150 },
-        { id: 'F-108', name: '2F 분말소화기 #5', shop: '구찌 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 140, y: 450 },
-        { id: 'F-109', name: '2F 분말소화기 #6', shop: '프라다 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 340, y: 450 },
-        { id: 'F-110', name: '2F 분말소화기 #7', shop: '생로랑 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 600, y: 450 },
-        { id: 'F-111', name: '2F 분말소화기 #8', shop: '까르띠에 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 800, y: 450 },
+        { id: 'F-104', name: '2F 청정소화기 #1 (전산/EPS)', shop: '2F EPS실', category: 'FIRE', pinType: 'CLEAN_EXTINGUISHER', floor: '2F', x: 140, y: 150 },
+        { id: 'F-105', name: '2F 청정소화기 #2 (방재/서버)', shop: '2F 알람벨브실', category: 'FIRE', pinType: 'CLEAN_EXTINGUISHER', floor: '2F', x: 340, y: 150 },
+        { id: 'F-106', name: '2F 분말소화기 #1', shop: '루이비통 매장', category: 'FIRE', pinType: 'POWDER_EXTINGUISHER', floor: '2F', x: 600, y: 150 },
+        { id: 'F-107', name: '2F 분말소화기 #2', shop: '디올 매장', category: 'FIRE', pinType: 'POWDER_EXTINGUISHER', floor: '2F', x: 800, y: 150 },
+        { id: 'F-108', name: '2F 분말소화기 #3', shop: '구찌 매장', category: 'FIRE', pinType: 'POWDER_EXTINGUISHER', floor: '2F', x: 140, y: 450 },
+        { id: 'F-109', name: '2F 분말소화기 #4', shop: '프라다 매장', category: 'FIRE', pinType: 'POWDER_EXTINGUISHER', floor: '2F', x: 340, y: 450 },
+        { id: 'F-110', name: '2F 분말소화기 #5', shop: '생로랑 매장', category: 'FIRE', pinType: 'POWDER_EXTINGUISHER', floor: '2F', x: 600, y: 450 },
+        { id: 'F-111', name: '2F 분말소화기 #6', shop: '까르띠에 매장', category: 'FIRE', pinType: 'POWDER_EXTINGUISHER', floor: '2F', x: 800, y: 450 },
         { id: 'F-112', name: '2F 비상계단 #1 (동측 피난구)', shop: '비상계단실', category: 'SAFETY', pinType: 'EMERGENCY_STAIRS', floor: '2F', x: 900, y: 300 },
         { id: 'F-113', name: '2F 비상계단 #2 (서측 피난구)', shop: '비상계단실', category: 'SAFETY', pinType: 'EMERGENCY_STAIRS', floor: '2F', x: 40, y: 300 },
 
