@@ -726,7 +726,7 @@
 
   <!-- ==================== 모달 영역 ==================== -->
 
-  <!-- 1. 통합 로그인 모달 (소장 PIN: 0621) -->
+  <!-- 1. 통합 로그인 모달 -->
   <div id="loginModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-3">
     <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg w-full max-w-sm p-4 sm:p-5 space-y-3.5 shadow-2xl">
       <div class="text-center">
@@ -1286,7 +1286,7 @@
       'SMOKE_ZONE':  { name: '제연구역', stroke: '#dc2626', strokeWidth: 4, strokeDash: '8 4', fill: 'rgba(239, 68, 68, 0.08)' }
     };
 
-    // 직원 목록 (시설소장 계정 PIN: 0621 기본 탑재)
+    // 직원 목록 (기본 계정 탑재)
     let staffList = [
       { id: 'ST-00', name: '시설소장', email: 'director@avenuel.co.kr', pin: '0621', role: 'admin' },
       { id: 'ST-01', name: '김시설', email: 'admin@avenuel.co.kr', pin: '1234', role: 'admin' },
@@ -1342,7 +1342,7 @@
     };
 
     // ==========================================
-    // 2. 인증 및 권한 로직 (소장 PIN: 0621)
+    // 2. 인증 및 권한 로직
     // ==========================================
     function initAuth() {
       const savedStaff = localStorage.getItem('avenuel_staff_list');
@@ -1461,7 +1461,7 @@
         closeLoginModal();
         alert(`${matched.name}님 환영합니다.`);
       } else {
-        alert('일치하는 PIN 번호가 없습니다. (소장: 0621, 관리자: 1234, 직원: 5678)');
+        alert('일치하는 PIN 번호가 없습니다. 등록된 4자리 PIN을 다시 확인해 주세요.');
         clearPin();
       }
     }
