@@ -4,12 +4,15 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use chrono::Utc;
 use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
-    models::{Facility, LoginRequest, LoginResponse, PipeLine, Staff},
+    backup::BackupManager,
+    models::{BackupTriggerRequest, Facility, LoginRequest, LoginResponse, PipeLine, Staff},
     state::AppState,
+    supabase::SupabaseClient,
 };
 
 // 1. PIN 인증 핸들러 (4자리 PIN)
@@ -76,17 +79,27 @@ pub async fn create_pipe_handler(
     if new_pipe.id.is_empty() {
         new_pipe.id = format!("P-{}", Uuid::new_v4().simple().to_string()[..8].to_uppercase());
     }
+    new_pipe.updated_at = Utc::now();
 
     // 매장 선로 개수 갱신
     {
         let mut shops = state.shops.write();
         if let Some(shop) = shops.iter_mut().find(|s| s.name == new_pipe.shop) {
             shop.pipe_count += 1;
+            shop.updated_at = Utc::now();
         }
     }
 
     let saved = new_pipe.clone();
     state.pipes.write().push(new_pipe);
+
+    // Supabase 주 DB 비동기 동기화
+    if let Some(sb) = SupabaseClient::from_env() {
+        let p = saved.clone();
+        tokio::spawn(async move {
+            let _ = sb.upsert_pipe(&p).await;
+        });
+    }
 
     (StatusCode::CREATED, Json(saved))
 }
@@ -104,8 +117,18 @@ pub async fn delete_pipe_handler(
         if let Some(shop) = shops.iter_mut().find(|s| s.name == removed.shop) {
             if shop.pipe_count > 0 {
                 shop.pipe_count -= 1;
+                shop.updated_at = Utc::now();
             }
         }
+
+        // Supabase 삭제 동기화
+        if let Some(sb) = SupabaseClient::from_env() {
+            let pid = id.clone();
+            tokio::spawn(async move {
+                let _ = sb.delete_pipe(&pid).await;
+            });
+        }
+
         StatusCode::NO_CONTENT
     } else {
         StatusCode::NOT_FOUND
@@ -126,8 +149,17 @@ pub async fn create_facility_handler(
     if fac.id.is_empty() {
         fac.id = format!("F-{}", Uuid::new_v4().simple().to_string()[..8].to_uppercase());
     }
+    fac.updated_at = Utc::now();
     let saved = fac.clone();
     state.facilities.write().push(fac);
+
+    if let Some(sb) = SupabaseClient::from_env() {
+        let f = saved.clone();
+        tokio::spawn(async move {
+            let _ = sb.upsert_facility(&f).await;
+        });
+    }
+
     (StatusCode::CREATED, Json(saved))
 }
 
@@ -159,6 +191,7 @@ pub async fn create_staff_handler(
     if member.id.is_empty() {
         member.id = format!("ST-{}", Uuid::new_v4().simple().to_string()[..6].to_uppercase());
     }
+    member.updated_at = Utc::now();
     let saved = member.clone();
     state.staff.write().push(member);
     (StatusCode::CREATED, Json(saved))
@@ -176,4 +209,28 @@ pub async fn delete_staff_handler(
     } else {
         StatusCode::NOT_FOUND
     }
+}
+
+// 12. 백업 즉시 실행 핸들러 (수동 트리거: FULL 또는 INCREMENTAL)
+pub async fn trigger_backup_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<BackupTriggerRequest>,
+) -> impl IntoResponse {
+    match BackupManager::execute_backup(&state, payload.backup_type).await {
+        Ok(log) => (StatusCode::OK, Json(serde_json::json!({
+            "success": true,
+            "message": format!("{} 백업이 성공적으로 완료되었습니다.", log.backup_type),
+            "log": log
+        }))),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+            "success": false,
+            "message": format!("백업 실행 실패: {}", e)
+        })))
+    }
+}
+
+// 13. 백업 이력 조회 핸들러
+pub async fn get_backup_logs_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let logs = state.backup_logs.read().clone();
+    (StatusCode::OK, Json(logs))
 }

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -24,6 +25,8 @@ pub struct Shop {
     pub floor: String,        // 예: 2F
     pub description: String,  // 설명 및 인입 제원
     pub pipe_count: usize,    // 연결 선로 수
+    #[serde(default = "Utc::now")]
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,6 +39,8 @@ pub struct PipeLine {
     pub length: String,             // 예: 18.4m
     pub points: String,             // SVG 좌표 목록 "x1,y1 x2,y2 ..."
     pub color: String,              // Hex 색상코드
+    #[serde(default = "Utc::now")]
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,6 +53,8 @@ pub struct Facility {
     pub x: f64,                     // 도면 X 좌표
     pub y: f64,                     // 도면 Y 좌표
     pub status: String,             // "정상", "점검필요"
+    #[serde(default = "Utc::now")]
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -56,6 +63,8 @@ pub struct Staff {
     pub name: String,
     pub pin: String,         // 4자리 PIN
     pub role: UserRole,      // admin | viewer
+    #[serde(default = "Utc::now")]
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -69,4 +78,23 @@ pub struct LoginResponse {
     pub role: Option<UserRole>,
     pub name: Option<String>,
     pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupLog {
+    pub id: String,
+    pub backup_type: String, // "FULL" | "INCREMENTAL"
+    pub target: String,      // "GOOGLE_DRIVE"
+    pub file_name: String,
+    pub file_id: Option<String>,
+    pub records_count: usize,
+    pub since_timestamp: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub status: String,
+    pub details: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BackupTriggerRequest {
+    pub backup_type: Option<String>, // "FULL" | "INCREMENTAL"
 }

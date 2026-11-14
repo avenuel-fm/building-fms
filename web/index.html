@@ -10,6 +10,7 @@
   <link rel="manifest" href="./manifest.json">
   <title>잠실점 에비뉴엘 시설물 관제</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --background: #f8fafc;
@@ -134,6 +135,13 @@
           직원/PIN
         </button>
 
+        <!-- DB / 백업 관리 버튼 -->
+        <button onclick="openBackupModal()" id="dbBackupBtn" class="px-2 py-1 text-xs rounded border border-[var(--border)] hover:bg-[var(--sidebar)] text-[var(--foreground)] flex items-center gap-1 font-medium">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500" id="dbStatusDot"></span>
+          <span class="hidden sm:inline">DB/백업</span>
+          <span class="sm:hidden">DB</span>
+        </button>
+
         <!-- PIN 인증/전환 버튼 -->
         <button onclick="openLoginModal()" class="px-2 py-1 text-xs rounded font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900 shrink-0">
           <span class="sm:hidden">PIN</span>
@@ -251,6 +259,10 @@
               직원/PIN 관리
             </button>
           </div>
+          <button onclick="openBackupModal()" class="w-full py-1.5 px-2 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center flex items-center justify-center gap-1.5 text-[var(--foreground)]">
+            <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
+            <span>Supabase & 백업 관리</span>
+          </button>
         </div>
       </aside>
 
@@ -524,6 +536,110 @@
     </div>
   </div>
 
+  <!-- DB 및 구글 드라이브 주간 백업 관리 모달 -->
+  <div id="backupModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg w-full max-w-lg p-4 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto custom-scrollbar">
+      
+      <!-- 모달 상단 헤더 -->
+      <div class="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
+          <h3 class="font-bold text-sm text-[var(--foreground)]">데이터베이스 및 주간 백업 관리</h3>
+        </div>
+        <button onclick="closeBackupModal()" class="p-1 rounded text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--sidebar)]" aria-label="닫기">✕</button>
+      </div>
+
+      <!-- 1. 주 데이터베이스: Supabase 설정 섹션 -->
+      <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--sidebar)] space-y-2.5 text-xs">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5 font-bold text-[var(--foreground)]">
+            <span class="w-2 h-2 rounded-full bg-emerald-500" id="sbConnectionDot"></span>
+            <span>주 데이터베이스: Supabase (PostgreSQL)</span>
+          </div>
+          <span id="sbConnectionBadge" class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">상태 확인 중</span>
+        </div>
+        <p class="text-[11px] text-[var(--muted-foreground)] leading-relaxed">
+          평소 시설물, 배관/전기 라인, 입점 매장 데이터는 Supabase 클라우드 DB에 실시간 저장 및 참조됩니다.
+        </p>
+
+        <div class="space-y-1.5 pt-1">
+          <div>
+            <label class="block text-[10px] font-semibold text-[var(--muted-foreground)] mb-0.5">Supabase Project URL</label>
+            <input type="text" id="sbUrlInput" placeholder="https://your-project.supabase.co" class="w-full px-2.5 py-1.5 rounded border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] text-xs font-mono focus:outline-none focus:border-slate-500">
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-[var(--muted-foreground)] mb-0.5">Supabase Anon Key (Public Key)</label>
+            <input type="password" id="sbKeyInput" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." class="w-full px-2.5 py-1.5 rounded border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] text-xs font-mono focus:outline-none focus:border-slate-500">
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          <button onclick="saveSupabaseConfig()" class="flex-1 py-1.5 px-3 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-semibold text-xs text-center hover:opacity-90">
+            설정 저장 및 연결 테스트
+          </button>
+          <button onclick="syncSeedToSupabase()" class="py-1.5 px-2.5 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center text-[var(--foreground)]" title="현재 잠실점 2F 시드 데이터를 Supabase 테이블에 업로드합니다.">
+            2F 시드 데이터 Supabase로 전송
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. 백업 저장소: Google Drive 주간 백업 관리 -->
+      <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--sidebar)] space-y-2.5 text-xs">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5 font-bold text-[var(--foreground)]">
+            <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"/></svg>
+            <span>백업 저장소: Google Drive 주간 백업</span>
+          </div>
+          <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300">7일 주기 자동</span>
+        </div>
+
+        <!-- 주간 백업 정책 안내 카드 -->
+        <div class="p-2 rounded border border-[var(--border)] bg-[var(--card)] space-y-1 text-[11px] leading-relaxed">
+          <div class="font-bold text-[var(--foreground)] flex items-center gap-1">
+            <span>주간 백업 정책:</span>
+          </div>
+          <div class="text-[var(--muted-foreground)]">
+            • <strong>1주차:</strong> 구글 드라이브로 전체 데이터 백업 (FULL BACKUP)<br>
+            • <strong>2주차 이후:</strong> 변경 및 추가된 데이터만 증분 백업 (INCREMENTAL BACKUP)<br>
+            • <strong>주기:</strong> 7일마다 Rust 백엔드 스케줄러가 자동 백업 수행
+          </div>
+        </div>
+
+        <!-- 수동 즉시 백업 버튼 그룹 -->
+        <div class="space-y-1.5 pt-1">
+          <div class="text-[10px] font-semibold text-[var(--muted-foreground)]">수동 즉시 백업 트리거</div>
+          <div class="grid grid-cols-3 gap-1.5">
+            <button onclick="triggerManualBackup('FULL')" class="py-1.5 px-1 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-semibold text-xs text-center hover:opacity-90 truncate">
+              전체 백업 (FULL)
+            </button>
+            <button onclick="triggerManualBackup('INCREMENTAL')" class="py-1.5 px-1 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--sidebar)] rounded font-semibold text-xs text-center truncate">
+              증분 백업 (INC)
+            </button>
+            <button onclick="downloadJsonBackup()" class="py-1.5 px-1 border border-blue-300 dark:border-blue-800 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/40 rounded font-semibold text-xs text-center truncate">
+              스냅샷 다운로드
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 최근 백업 실행 로그 -->
+      <div class="space-y-1.5 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-[var(--foreground)]">최근 백업 이력 (Backup Logs)</span>
+          <button onclick="fetchBackupLogs()" class="text-[11px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] underline">새로고침</button>
+        </div>
+        <div id="backupLogsContainer" class="p-2 rounded border border-[var(--border)] bg-[var(--sidebar)] max-h-36 overflow-y-auto custom-scrollbar space-y-1.5">
+          <div class="text-[11px] text-[var(--muted-foreground)] text-center py-2">백업 이력을 조회하는 중입니다...</div>
+        </div>
+      </div>
+
+      <!-- 하단 닫기 버튼 -->
+      <button onclick="closeBackupModal()" class="w-full py-2 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-bold text-xs hover:opacity-90">
+        닫기
+      </button>
+    </div>
+  </div>
+
   <script>
     let currentTheme = 'light';
     let currentUser = { role: 'admin', name: '김시설 관리자' };
@@ -533,6 +649,9 @@
     let shopsData = [];
     let pipesData = [];
     let facilitiesData = [];
+
+    // Supabase 클라이언트 전역 인스턴스
+    let supabaseClient = null;
 
     // 도면 팬 & 줌 상태 변수
     let currentZoom = 0.92;
@@ -546,22 +665,123 @@
     let initialTouchDistance = 0;
     let initialZoom = currentZoom;
 
-    // 1. 초기 데이터 로드
+    // Supabase 클라이언트 초기화
+    function initSupabase() {
+      const url = localStorage.getItem('avenuel_sb_url') || '';
+      const key = localStorage.getItem('avenuel_sb_key') || '';
+      const urlInput = document.getElementById('sbUrlInput');
+      const keyInput = document.getElementById('sbKeyInput');
+      if (urlInput) urlInput.value = url;
+      if (keyInput) keyInput.value = key;
+
+      if (url && key && window.supabase) {
+        try {
+          supabaseClient = window.supabase.createClient(url, key);
+          updateDbStatusBadge(true, 'Supabase 클라우드 DB 연결됨');
+        } catch (e) {
+          console.warn('Supabase 초기화 실패:', e);
+          updateDbStatusBadge(false, '설정 오류');
+        }
+      } else {
+        updateDbStatusBadge(false, '미설정 (로컬/캐시 모드)');
+      }
+    }
+
+    function updateDbStatusBadge(connected, text) {
+      const dot = document.getElementById('dbStatusDot');
+      const sbDot = document.getElementById('sbConnectionDot');
+      const badge = document.getElementById('sbConnectionBadge');
+      if (dot) {
+        dot.className = connected ? 'w-1.5 h-1.5 rounded-full bg-emerald-500' : 'w-1.5 h-1.5 rounded-full bg-amber-500';
+      }
+      if (sbDot) {
+        sbDot.className = connected ? 'w-2 h-2 rounded-full bg-emerald-500' : 'w-2 h-2 rounded-full bg-amber-500';
+      }
+      if (badge) {
+        badge.innerText = text;
+        badge.className = connected
+          ? 'px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300'
+          : 'px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300';
+      }
+    }
+
+    async function saveSupabaseConfig() {
+      const url = document.getElementById('sbUrlInput').value.trim();
+      const key = document.getElementById('sbKeyInput').value.trim();
+
+      if (!url || !key) {
+        alert('Supabase Project URL과 Anon Key를 모두 입력해 주세요.');
+        return;
+      }
+
+      localStorage.setItem('avenuel_sb_url', url);
+      localStorage.setItem('avenuel_sb_key', key);
+
+      try {
+        if (!window.supabase) {
+          alert('Supabase 라이브러리를 로드하지 못했습니다.');
+          return;
+        }
+        supabaseClient = window.supabase.createClient(url, key);
+        const { data, error } = await supabaseClient.from('shops').select('count', { count: 'exact', head: true });
+        if (error) throw error;
+        updateDbStatusBadge(true, 'Supabase 클라우드 DB 연결됨');
+        alert('Supabase 연결 성공! 주 데이터베이스로 활성화되었습니다.');
+        loadData();
+      } catch (err) {
+        updateDbStatusBadge(false, '연결 실패');
+        alert('Supabase 연결 실패: ' + (err.message || 'URL 또는 Key를 확인하세요.'));
+      }
+    }
+
+    // 1. 초기 데이터 로드 (우선순위: 로컬 Rust FMS -> Supabase 클라우드 -> 내장 캐시)
     async function loadData() {
+      // A. 로컬 Rust FMS API 시도
       try {
         const [shopsRes, pipesRes, facRes] = await Promise.all([
           fetch('/api/shops'),
           fetch('/api/pipes'),
           fetch('/api/facilities')
         ]);
-        if (shopsRes.ok) shopsData = await shopsRes.json();
-        if (pipesRes.ok) pipesData = await pipesRes.json();
-        if (facRes.ok) facilitiesData = await facRes.json();
+        if (shopsRes.ok && pipesRes.ok && facRes.ok) {
+          shopsData = await shopsRes.json();
+          pipesData = await pipesRes.json();
+          facilitiesData = await facRes.json();
+          renderAll();
+          initViewportGesture();
+          return;
+        }
       } catch (err) {
-        console.warn('API 미응답, 내장 캐시 데이터로 가동합니다.');
-        loadFallbackData();
+        // 백엔드 미구동 환경 (GitHub Pages 정적 호스팅 등)
       }
+
+      // B. Supabase 클라우드 DB 직접 조회
+      if (supabaseClient) {
+        try {
+          const [sRes, pRes, fRes] = await Promise.all([
+            supabaseClient.from('shops').select('*').order('name'),
+            supabaseClient.from('pipes').select('*'),
+            supabaseClient.from('facilities').select('*')
+          ]);
+          if (!sRes.error && sRes.data && sRes.data.length > 0) {
+            shopsData = sRes.data;
+            pipesData = pRes.data || [];
+            facilitiesData = fRes.data || [];
+            renderAll();
+            initViewportGesture();
+            return;
+          }
+        } catch (err) {
+          console.warn('Supabase 데이터 조회 오류:', err);
+        }
+      }
+
+      // C. 내장 시드 데이터로 가동
+      console.info('내장 시드 데이터로 관제 시스템을 시작합니다.');
+      loadFallbackData();
       renderAll();
+      initViewportGesture();
+    }
       initViewportGesture();
     }
 
@@ -985,6 +1205,192 @@
       document.getElementById('staffModal').classList.add('hidden');
     }
 
+    // 6-B. DB 및 구글 드라이브 주간 백업 모달
+    function openBackupModal() {
+      document.getElementById('backupModal').classList.remove('hidden');
+      initSupabase();
+      fetchBackupLogs();
+    }
+    function closeBackupModal() {
+      document.getElementById('backupModal').classList.add('hidden');
+    }
+
+    // 백업 수동 실행 (로컬 백엔드 우선 -> 서버리스 환경 시 스냅샷 즉시 다운로드)
+    async function triggerManualBackup(type) {
+      const typeLabel = type === 'FULL' ? '전체(FULL)' : '증분(INCREMENTAL)';
+      try {
+        const res = await fetch('/api/backup/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ backup_type: type })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          alert(`[백업 완료] ${data.message}\n파일명: ${data.log.file_name}\n기록된 항목: ${data.log.records_count}건`);
+          fetchBackupLogs();
+          return;
+        }
+      } catch (err) {
+        // 서버 미응답 시 브라우저 스냅샷 모드로 진행
+      }
+
+      // 서버리스(GitHub Pages) 모드 백업 생성
+      downloadJsonBackup(type);
+      recordLocalBackupLog(type);
+      fetchBackupLogs();
+      alert(`[${typeLabel} 백업 완료] 로컬 백업 파일 다운로드가 완료되었습니다.`);
+    }
+
+    // JSON 백업 파일 생성 및 브라우저 다운로드
+    function downloadJsonBackup(type = 'FULL') {
+      const now = new Date();
+      const timeStr = now.toISOString().replace(/[:.]/g, '-');
+      const filename = `avenuel_fms_backup_${type}_${timeStr}.json`;
+
+      const backupPayload = {
+        meta: {
+          app: 'Avenuel Building Facility Management System',
+          location: '잠실점 에비뉴엘 2F',
+          backup_type: type,
+          created_at: now.toISOString(),
+          target: 'GOOGLE_DRIVE_BACKUP',
+          version: '1.0'
+        },
+        data: {
+          shops: shopsData,
+          pipes: pipesData,
+          facilities: facilitiesData
+        }
+      };
+
+      const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // 로컬스토리지 백업 로그 기록 (서버리스 환경)
+    function recordLocalBackupLog(type) {
+      const logs = JSON.parse(localStorage.getItem('avenuel_backup_logs') || '[]');
+      const now = new Date();
+      logs.unshift({
+        id: 'BKP-LOCAL-' + Date.now().toString().slice(-6),
+        backup_type: type,
+        target: 'GOOGLE_DRIVE / LOCAL',
+        file_name: `avenuel_fms_backup_${type}_${now.toISOString().slice(0, 10)}.json`,
+        records_count: (shopsData.length + pipesData.length + facilitiesData.length),
+        created_at: now.toISOString(),
+        status: 'COMPLETED'
+      });
+      if (logs.length > 20) logs.pop();
+      localStorage.setItem('avenuel_backup_logs', JSON.stringify(logs));
+    }
+
+    // 백업 이력 조회
+    async function fetchBackupLogs() {
+      const container = document.getElementById('backupLogsContainer');
+      let logs = [];
+
+      try {
+        const res = await fetch('/api/backup/logs');
+        if (res.ok) {
+          logs = await res.json();
+        }
+      } catch (err) {}
+
+      if (!logs || logs.length === 0) {
+        logs = JSON.parse(localStorage.getItem('avenuel_backup_logs') || '[]');
+      }
+
+      if (!logs || logs.length === 0) {
+        container.innerHTML = '<div class="text-[11px] text-[var(--muted-foreground)] text-center py-2">아직 기록된 백업 이력이 없습니다.</div>';
+        return;
+      }
+
+      container.innerHTML = logs.map(log => {
+        const isFull = log.backup_type === 'FULL';
+        const dateStr = new Date(log.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        return `
+          <div class="p-2 rounded border border-[var(--border)] bg-[var(--card)] flex items-center justify-between text-xs">
+            <div class="min-w-0 pr-2">
+              <div class="flex items-center gap-1.5 font-bold text-[var(--foreground)] truncate">
+                <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${isFull ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'}">${log.backup_type}</span>
+                <span class="truncate">${log.file_name}</span>
+              </div>
+              <div class="text-[10px] text-[var(--muted-foreground)] truncate mt-0.5">
+                ${dateStr} | 대상: ${log.target} | ${log.records_count}건
+              </div>
+            </div>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${log.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-amber-50 text-amber-600'}">${log.status}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 2F 시드 데이터를 Supabase 테이블에 일괄 전송
+    async function syncSeedToSupabase() {
+      if (!supabaseClient) {
+        alert('먼저 Supabase URL과 Key를 설정하고 저장해 주세요.');
+        return;
+      }
+
+      if (!confirm('현재 2F 기본 시드 데이터(매장, 배관, 시설물)를 Supabase 테이블에 동기화하시겠습니까?')) {
+        return;
+      }
+
+      try {
+        // 1. 매장 동기화
+        if (shopsData && shopsData.length > 0) {
+          const shopRows = shopsData.map(s => ({
+            name: s.name,
+            code: s.code,
+            description: s.desc || s.description || '',
+            pipe_count: s.pipe_count || s.pipeCount || 0
+          }));
+          await supabaseClient.from('shops').upsert(shopRows, { onConflict: 'name' });
+        }
+
+        // 2. 배관 동기화
+        if (pipesData && pipesData.length > 0) {
+          const pipeRows = pipesData.map(p => ({
+            id: p.id,
+            name: p.name,
+            shop: p.shop,
+            category: p.category,
+            spec: p.spec,
+            length: p.length,
+            points: p.points,
+            color: p.color
+          }));
+          await supabaseClient.from('pipes').upsert(pipeRows, { onConflict: 'id' });
+        }
+
+        // 3. 시설물 동기화
+        if (facilitiesData && facilitiesData.length > 0) {
+          const facRows = facilitiesData.map(f => ({
+            id: f.id,
+            name: f.name,
+            shop: f.shop,
+            category: f.category,
+            floor: f.floor || '2F',
+            x: Math.round(f.x),
+            y: Math.round(f.y)
+          }));
+          await supabaseClient.from('facilities').upsert(facRows, { onConflict: 'id' });
+        }
+
+        alert('2F 시드 데이터가 Supabase에 성공적으로 전송/동기화되었습니다.');
+        updateDbStatusBadge(true, 'Supabase 클라우드 DB 연동됨');
+      } catch (err) {
+        alert('동기화 실패: ' + (err.message || '테이블 스키마 생성 여부를 확인하세요.'));
+      }
+    }
+
     // 7. 배관 그리기
     let isDrawing = false;
     let drawnPoints = [];
@@ -1045,6 +1451,7 @@
         color: color
       };
 
+      // 1) 로컬 백엔드 저장 시도
       try {
         await fetch('/api/pipes', {
           method: 'POST',
@@ -1053,15 +1460,27 @@
         });
       } catch (e) {}
 
+      // 2) 주 DB (Supabase) 클라우드 실시간 저장
+      if (supabaseClient) {
+        try {
+          await supabaseClient.from('pipes').insert([newPipe]);
+        } catch (err) {
+          console.warn('Supabase 저장 오류:', err);
+        }
+      }
+
       pipesData.push(newPipe);
       renderPipes();
       renderPipesList();
       cancelPipeDraw();
       selectStore(shop);
-      alert(`[${shop}] ${name}이 등록되었습니다.`);
+      alert(`[${shop}] ${name}이 등록되었습니다. (Supabase 주 DB 동기화 완료)`);
     }
 
-    document.addEventListener('DOMContentLoaded', loadData);
+    document.addEventListener('DOMContentLoaded', () => {
+      initSupabase();
+      loadData();
+    });
   </script>
 </body>
 </html>

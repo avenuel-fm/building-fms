@@ -1,6 +1,7 @@
 use std::sync::Arc;
+use chrono::Utc;
 use parking_lot::RwLock;
-use crate::models::{Facility, FacilityCategory, PipeLine, Shop, Staff, UserRole};
+use crate::models::{BackupLog, Facility, FacilityCategory, PipeLine, Shop, Staff, UserRole};
 
 #[derive(Debug, Clone)]
 pub struct AppState {
@@ -8,10 +9,14 @@ pub struct AppState {
     pub pipes: Arc<RwLock<Vec<PipeLine>>>,
     pub facilities: Arc<RwLock<Vec<Facility>>>,
     pub staff: Arc<RwLock<Vec<Staff>>>,
+    pub backup_logs: Arc<RwLock<Vec<BackupLog>>>,
+    pub last_full_backup: Arc<RwLock<Option<chrono::DateTime<Utc>>>>,
+    pub last_incremental_backup: Arc<RwLock<Option<chrono::DateTime<Utc>>>>,
 }
 
 impl AppState {
     pub fn new() -> Self {
+        let now = Utc::now();
         let shops = vec![
             Shop {
                 id: "S-01".into(),
@@ -20,6 +25,7 @@ impl AppState {
                 floor: "2F".into(),
                 description: "급수(50A), 전력(75kW), 소방SP 인입".into(),
                 pipe_count: 3,
+                updated_at: now,
             },
             Shop {
                 id: "S-02".into(),
@@ -28,6 +34,7 @@ impl AppState {
                 floor: "2F".into(),
                 description: "급수(65A), 간선전력(50kW) 인입".into(),
                 pipe_count: 2,
+                updated_at: now,
             },
             Shop {
                 id: "S-03".into(),
@@ -36,6 +43,7 @@ impl AppState {
                 floor: "2F".into(),
                 description: "급수(50A), 특고압(80kW) 인입".into(),
                 pipe_count: 2,
+                updated_at: now,
             },
             Shop {
                 id: "S-04".into(),
@@ -44,6 +52,7 @@ impl AppState {
                 floor: "2F".into(),
                 description: "급수(40A), 조명간선(45kW) 인입".into(),
                 pipe_count: 2,
+                updated_at: now,
             },
             Shop {
                 id: "S-05".into(),
@@ -52,6 +61,7 @@ impl AppState {
                 floor: "2F".into(),
                 description: "급수(50A), 전력선(60kW) 인입".into(),
                 pipe_count: 2,
+                updated_at: now,
             },
             Shop {
                 id: "S-06".into(),
@@ -60,6 +70,7 @@ impl AppState {
                 floor: "2F".into(),
                 description: "공조덕트, 분전반 인입".into(),
                 pipe_count: 1,
+                updated_at: now,
             },
             Shop {
                 id: "S-07".into(),
@@ -68,6 +79,7 @@ impl AppState {
                 floor: "2F".into(),
                 description: "급수, 전력 배선 연결 대기".into(),
                 pipe_count: 0,
+                updated_at: now,
             },
             Shop {
                 id: "S-08".into(),
@@ -76,6 +88,7 @@ impl AppState {
                 floor: "2F".into(),
                 description: "조명선로 인입 완료".into(),
                 pipe_count: 0,
+                updated_at: now,
             },
         ];
 
@@ -89,6 +102,7 @@ impl AppState {
                 length: "18.4m".into(),
                 points: "470,300 115,300 115,270".into(),
                 color: "#0284c7".into(),
+                updated_at: now,
             },
             PipeLine {
                 id: "P-202".into(),
@@ -99,6 +113,7 @@ impl AppState {
                 length: "21.0m".into(),
                 points: "460,290 125,290 125,270".into(),
                 color: "#d97706".into(),
+                updated_at: now,
             },
             PipeLine {
                 id: "P-203".into(),
@@ -109,6 +124,7 @@ impl AppState {
                 length: "15.6m".into(),
                 points: "470,310 105,310 105,270".into(),
                 color: "#dc2626".into(),
+                updated_at: now,
             },
             PipeLine {
                 id: "P-204".into(),
@@ -119,6 +135,7 @@ impl AppState {
                 length: "23.8m".into(),
                 points: "470,300 285,300 285,270".into(),
                 color: "#0284c7".into(),
+                updated_at: now,
             },
             PipeLine {
                 id: "P-205".into(),
@@ -129,6 +146,7 @@ impl AppState {
                 length: "19.2m".into(),
                 points: "460,290 295,290 295,270".into(),
                 color: "#d97706".into(),
+                updated_at: now,
             },
             PipeLine {
                 id: "P-206".into(),
@@ -139,6 +157,7 @@ impl AppState {
                 length: "24.5m".into(),
                 points: "470,300 655,300 655,270".into(),
                 color: "#0284c7".into(),
+                updated_at: now,
             },
             PipeLine {
                 id: "P-207".into(),
@@ -149,6 +168,7 @@ impl AppState {
                 length: "26.8m".into(),
                 points: "460,290 645,290 645,270".into(),
                 color: "#d97706".into(),
+                updated_at: now,
             },
             PipeLine {
                 id: "P-208".into(),
@@ -159,6 +179,7 @@ impl AppState {
                 length: "31.2m".into(),
                 points: "470,300 825,300 825,270".into(),
                 color: "#0284c7".into(),
+                updated_at: now,
             },
             PipeLine {
                 id: "P-209".into(),
@@ -169,6 +190,7 @@ impl AppState {
                 length: "33.0m".into(),
                 points: "460,290 835,290 835,270".into(),
                 color: "#d97706".into(),
+                updated_at: now,
             },
             PipeLine {
                 id: "P-210".into(),
@@ -179,6 +201,7 @@ impl AppState {
                 length: "18.1m".into(),
                 points: "470,300 115,300 115,330".into(),
                 color: "#0284c7".into(),
+                updated_at: now,
             },
             PipeLine {
                 id: "P-211".into(),
@@ -189,6 +212,7 @@ impl AppState {
                 length: "19.7m".into(),
                 points: "460,290 125,290 125,330".into(),
                 color: "#d97706".into(),
+                updated_at: now,
             },
             PipeLine {
                 id: "P-212".into(),
@@ -199,6 +223,7 @@ impl AppState {
                 length: "22.4m".into(),
                 points: "470,320 285,320 285,330".into(),
                 color: "#059669".into(),
+                updated_at: now,
             },
         ];
 
@@ -212,6 +237,7 @@ impl AppState {
                 x: 50.0,
                 y: 50.0,
                 status: "정상".into(),
+                updated_at: now,
             },
             Facility {
                 id: "F-102".into(),
@@ -222,6 +248,7 @@ impl AppState {
                 x: 170.0,
                 y: 50.0,
                 status: "정상".into(),
+                updated_at: now,
             },
             Facility {
                 id: "F-103".into(),
@@ -232,6 +259,7 @@ impl AppState {
                 x: 220.0,
                 y: 50.0,
                 status: "정상".into(),
+                updated_at: now,
             },
             Facility {
                 id: "F-104".into(),
@@ -242,6 +270,7 @@ impl AppState {
                 x: 710.0,
                 y: 50.0,
                 status: "정상".into(),
+                updated_at: now,
             },
             Facility {
                 id: "F-105".into(),
@@ -252,6 +281,7 @@ impl AppState {
                 x: 880.0,
                 y: 50.0,
                 status: "정상".into(),
+                updated_at: now,
             },
         ];
 
@@ -261,12 +291,14 @@ impl AppState {
                 name: "김시설 관리자".into(),
                 pin: "1234".into(),
                 role: UserRole::Admin,
+                updated_at: now,
             },
             Staff {
                 id: "ST-02".into(),
-                name: "이순찰 주임".into(),
+                name: "이순찰 직원".into(),
                 pin: "5678".into(),
                 role: UserRole::Viewer,
+                updated_at: now,
             },
         ];
 
@@ -275,6 +307,9 @@ impl AppState {
             pipes: Arc::new(RwLock::new(pipes)),
             facilities: Arc::new(RwLock::new(facilities)),
             staff: Arc::new(RwLock::new(staff)),
+            backup_logs: Arc::new(RwLock::new(Vec::new())),
+            last_full_backup: Arc::new(RwLock::new(None)),
+            last_incremental_backup: Arc::new(RwLock::new(None)),
         }
     }
 }
