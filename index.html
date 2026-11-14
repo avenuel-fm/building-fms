@@ -86,6 +86,23 @@
       filter: grayscale(100%);
       pointer-events: none;
     }
+    .rotate-handle {
+      cursor: grab;
+      transition: r 0.15s ease;
+    }
+    .rotate-handle:hover, .rotate-handle:active {
+      r: 7px;
+      cursor: grabbing;
+    }
+    .resize-handle {
+      transition: all 0.15s ease;
+    }
+    .resize-handle:hover {
+      fill: #38bdf8 !important;
+    }
+    .pipe-dim-badge text {
+      user-select: none;
+    }
     .active-pipe-flow {
       stroke-dasharray: 8 4 !important;
       animation: pipe-flow 1.2s linear infinite;
@@ -364,12 +381,50 @@
       <main class="flex-1 flex flex-col bg-[var(--cad-paper)] relative overflow-hidden transition-colors duration-200">
         
         <!-- 캔버스 상단 미니 툴바 -->
-        <div class="h-8 sm:h-9 border-b border-[var(--border)] bg-[var(--card)]/90 backdrop-blur px-2.5 sm:px-3 flex items-center justify-between text-xs z-10 shrink-0">
-          <div class="flex items-center gap-2 min-w-0">
-            <span class="font-bold text-[var(--foreground)] text-[11px] sm:text-xs truncate" id="cadStatusText">2F 평면도 관제 화면</span>
+        <div class="h-8 sm:h-9 border-b border-[var(--border)] bg-[var(--card)]/90 backdrop-blur px-2.5 sm:px-3 flex items-center justify-between text-xs z-10 shrink-0 gap-1.5">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="font-bold text-[var(--foreground)] text-[11px] sm:text-xs truncate shrink-0" id="cadStatusText">2F 평면도</span>
+            
+            <!-- 통합 실시간 검색창 -->
+            <div class="relative flex items-center">
+              <input id="quickSearchInput" type="text" placeholder="검색 (/)" oninput="handleQuickSearch(this.value)" class="w-16 sm:w-28 h-6 px-1.5 text-[10px] sm:text-[11px] rounded border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:border-blue-500 placeholder:text-[var(--muted-foreground)]" title="매장, 선로, 구역 검색 (단축키: /)"/>
+            </div>
+
+            <!-- 실행 취소(Undo) / 다시 실행(Redo) -->
+            <div class="flex items-center gap-0.5 shrink-0 border-l border-[var(--border)] pl-1">
+              <button onclick="performUndo()" class="p-1 rounded hover:bg-[var(--sidebar)] text-[var(--foreground)]" title="실행 취소 (Ctrl+Z)">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"/></svg>
+              </button>
+              <button onclick="performRedo()" class="p-1 rounded hover:bg-[var(--sidebar)] text-[var(--foreground)]" title="다시 실행 (Ctrl+Y)">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3"/></svg>
+              </button>
+            </div>
           </div>
 
-          <div class="flex items-center gap-1 shrink-0">
+          <div class="flex items-center gap-1 shrink-0 overflow-x-auto custom-scrollbar py-0.5">
+            <!-- 치수 및 차단밸브 라벨 토글 -->
+            <button onclick="togglePipeLabels()" id="pipeLabelToggleBtn" class="px-1.5 py-0.5 rounded border border-[var(--border)] hover:bg-[var(--sidebar)] text-[10px] sm:text-[11px] font-medium flex items-center gap-1" title="관경/치수 및 차단밸브 인라인 라벨 온/오프">
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-400" id="labelStatusDot"></span>
+              <span class="hidden sm:inline">치수</span>
+            </button>
+
+            <!-- CAD 눈금자 & 십자선 가이드 토글 -->
+            <button onclick="toggleRulerAndCrosshair()" id="rulerToggleBtn" class="px-1.5 py-0.5 rounded border border-[var(--border)] hover:bg-[var(--sidebar)] text-[10px] sm:text-[11px] font-medium flex items-center gap-1" title="CAD 눈금자 및 직교 십자선 가이드 온/오프">
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-400" id="rulerStatusDot"></span>
+              <span class="hidden sm:inline">눈금</span>
+            </button>
+
+            <!-- 레이어 관리자 드롭다운 -->
+            <div class="relative">
+              <button onclick="toggleLayerMenu(event)" id="layerMenuBtn" class="px-1.5 py-0.5 rounded border border-[var(--border)] hover:bg-[var(--sidebar)] text-[10px] sm:text-[11px] font-medium flex items-center gap-1" title="도면 레이어별 가시성(표시) 및 잠금 설정">
+                <span>레이어</span>
+              </button>
+              <div id="layerMenuDropdown" class="hidden absolute right-0 top-full mt-1 w-44 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-xl p-2 z-50 text-[11px]">
+                <div class="font-bold text-[10px] text-[var(--muted-foreground)] px-1 pb-1 mb-1 border-b border-[var(--border)]">레이어 가시성 / 잠금</div>
+                <div id="layerMenuList" class="flex flex-col gap-1"></div>
+              </div>
+            </div>
+
             <!-- 1. 노트 버튼 (빨간색 자유 그리기, 완료 시 JPG 저장) -->
             <button onclick="toggleNoteMode()" id="noteBtn" class="px-2 py-0.5 rounded border border-rose-300 dark:border-rose-900 bg-rose-50/80 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 transition-colors" title="도면 위에 빨간색 자유 메모를 작성하고 완료 시 JPG 파일로 저장합니다">
               <svg class="w-3 h-3 text-rose-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
@@ -379,12 +434,12 @@
             <!-- 2. 도면 그리기: 다른 층 도면 불러오기 버튼 -->
             <button onclick="openImportFloorModal()" id="importFloorBtn" class="px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-900 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 transition-colors" title="다른 층의 도면 구역을 현재 층으로 가져옵니다">
               <svg class="w-3 h-3 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
-              <span>층 불러오기</span>
+              <span class="hidden sm:inline">층 불러오기</span>
             </button>
 
             <button onclick="openRiserModal()" class="px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-900 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 text-[10px] sm:text-[11px] font-semibold flex items-center gap-1" title="전체 층 수직 관통 샤프트 계통도 열기">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"/></svg>
-              <span>수직 계통 추적</span>
+              <span class="hidden sm:inline">수직 계통</span>
             </button>
             <button onclick="zoomIn()" class="p-1 rounded border border-[var(--border)] hover:bg-[var(--sidebar)]" title="확대">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
@@ -398,69 +453,105 @@
           </div>
         </div>
 
-        <!-- CAD 뷰포트 영역 -->
-        <div id="viewport" class="flex-1 relative overflow-hidden cad-grid cursor-grab active:cursor-grabbing touch-none">
-          
-          <svg id="cadSvg" class="w-full h-full select-none" viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid meet">
-            <g id="sceneGroup" transform="translate(40, 30) scale(0.92)">
-              
-              <!-- 1. 건물 외벽 (검은색 두꺼운 실선: stroke-width 6px) -->
-              <g id="wallLayer">
-                <rect id="baseOuterWall" x="20" y="20" width="900" height="560" fill="none" stroke="#0f172a" stroke-width="6"/>
+        <!-- CAD 눈금자 상단 바 -->
+        <div id="rulerContainerTop" class="hidden h-3.5 w-full bg-[var(--card)] border-b border-[var(--border)] overflow-hidden shrink-0 select-none">
+          <svg id="rulerTopSvg" class="w-full h-full"></svg>
+        </div>
+
+        <div class="flex-1 flex min-h-0 relative overflow-hidden">
+          <!-- CAD 눈금자 좌측 바 -->
+          <div id="rulerContainerLeft" class="hidden w-3.5 h-full bg-[var(--card)] border-r border-[var(--border)] overflow-hidden shrink-0 select-none">
+            <svg id="rulerLeftSvg" class="w-full h-full"></svg>
+          </div>
+
+          <!-- CAD 뷰포트 영역 -->
+          <div id="viewport" class="flex-1 relative overflow-hidden cad-grid cursor-grab active:cursor-grabbing touch-none">
+            <svg id="cadSvg" class="w-full h-full select-none" viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid meet">
+              <g id="sceneGroup" transform="translate(40, 30) scale(0.92)">
+                
+                <!-- 1. 건물 외벽 (검은색 두꺼운 실선: stroke-width 6px) -->
+                <g id="wallLayer">
+                  <rect id="baseOuterWall" x="20" y="20" width="900" height="560" fill="none" stroke="#0f172a" stroke-width="6"/>
+                </g>
+                
+                <!-- 2. 기둥(Column) -->
+                <g id="columnsGroup">
+                  <rect x="20" y="20" width="16" height="16" fill="var(--cad-column)"/>
+                  <rect x="300" y="20" width="16" height="16" fill="var(--cad-column)"/>
+                  <rect x="620" y="20" width="16" height="16" fill="var(--cad-column)"/>
+                  <rect x="904" y="20" width="16" height="16" fill="var(--cad-column)"/>
+                  <rect x="20" y="290" width="16" height="16" fill="var(--cad-column)"/>
+                  <rect x="300" y="290" width="16" height="16" fill="var(--cad-column)"/>
+                  <rect x="620" y="290" width="16" height="16" fill="var(--cad-column)"/>
+                  <rect x="904" y="290" width="16" height="16" fill="var(--cad-column)"/>
+                  <rect x="20" y="564" width="16" height="16" fill="var(--cad-column)"/>
+                  <rect x="300" y="564" width="16" height="16" fill="var(--cad-column)"/>
+                  <rect x="620" y="564" width="16" height="16" fill="var(--cad-column)"/>
+                  <rect x="904" y="564" width="16" height="16" fill="var(--cad-column)"/>
+                </g>
+
+                <!-- 3. 복도 및 코어 구역 -->
+                <rect x="380" y="20" width="180" height="130" fill="var(--sidebar)" stroke="var(--cad-wall)" stroke-width="2"/>
+                <text id="coreTextTop" x="470" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--muted-foreground)">EV / E/S 중앙 코어</text>
+                <rect x="380" y="450" width="180" height="130" fill="var(--sidebar)" stroke="var(--cad-wall)" stroke-width="2"/>
+                <text id="coreTextBottom" x="470" y="520" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--muted-foreground)">EPS / TPS / 방재실</text>
+
+                <!-- 4. 특수 방화구역 / 제연구역 레이어 (두꺼운 붉은색 점선: stroke-width 4px, dash 8 4) -->
+                <g id="fireSmokeZoneLayer"></g>
+
+                <!-- 5. 구역 및 매장 레이어 (매장, EPS, 공조실, PS, AV-알람벨브, PD 위로는 라인 그리기 불가) -->
+                <g id="shopsLayer"></g>
+
+                <!-- 메인 복도 공급 라인 -->
+                <g id="mainCorridorPipes">
+                  <path d="M 470 450 L 470 300 L 40 300" stroke="#0284c7" stroke-width="2.5" fill="none" opacity="0.35" stroke-dasharray="6 3"/>
+                  <path d="M 470 300 L 900 300" stroke="#0284c7" stroke-width="2.5" fill="none" opacity="0.35" stroke-dasharray="6 3"/>
+                  <path d="M 460 450 L 460 290 L 40 290" stroke="#ea580c" stroke-width="2.5" fill="none" opacity="0.35" stroke-dasharray="6 3"/>
+                  <path d="M 460 290 L 900 290" stroke="#ea580c" stroke-width="2.5" fill="none" opacity="0.35" stroke-dasharray="6 3"/>
+                </g>
+
+                <!-- 6. 배관 및 덕트 레이어 (덕트는 두께 5배=17.5px, 투명도 50%, 녹색) -->
+                <g id="pipePathLayer"></g>
+
+                <!-- 7. 시설물 핀 레이어 -->
+                <g id="pinLayer"></g>
+
+                <!-- 8. 다중 선택 및 하이라이트 오버레이 레이어 (Shift+클릭 다중 선택 시 표시) -->
+                <g id="selectionOverlayLayer"></g>
+
+                <!-- 9. 치수/스펙/차단밸브 인라인 라벨 오버레이 레이어 -->
+                <g id="pipeLabelsOverlayLayer"></g>
+
+                <!-- 10. 크기 조절(Resize) 및 각도 회전(Rotate) 변환 컨트롤 레이어 -->
+                <g id="transformControlsLayer"></g>
+
+                <!-- 11. 드래그 영역 선택 러버밴드 박스 -->
+                <rect id="rubberBandBox" class="hidden" x="0" y="0" width="0" height="0" fill="rgba(2, 132, 199, 0.12)" stroke="#0284c7" stroke-width="1.5" stroke-dasharray="4 2" pointer-events="none"/>
+
+                <!-- 12. 직교 십자선 가이드 및 좌표 툴팁 -->
+                <g id="crosshairGroup" class="hidden" pointer-events="none">
+                  <line id="crosshairX" x1="0" y1="0" x2="1000" y2="0" stroke="#0284c7" stroke-width="0.75" stroke-dasharray="3 3" opacity="0.65"/>
+                  <line id="crosshairY" x1="0" y1="0" x2="0" y2="650" stroke="#0284c7" stroke-width="0.75" stroke-dasharray="3 3" opacity="0.65"/>
+                  <rect id="crosshairBadgeBg" x="0" y="0" width="76" height="15" rx="3" fill="var(--card)" stroke="var(--border)" stroke-width="1" opacity="0.95"/>
+                  <text id="crosshairCoordText" x="0" y="0" font-size="8.5" font-family="monospace" fill="#0284c7" font-weight="bold"></text>
+                </g>
+
+                <!-- 라인 그리기 시 실시간 점선 미리보기 -->
+                <polyline id="tempPolyline" points="" stroke="#0284c7" stroke-width="3.5" fill="none" stroke-dasharray="6 3" class="hidden"/>
+
+                <!-- 도면 그리기 시 실시간 외곽 다각형 미리보기 (내부선 없음) -->
+                <polygon id="tempPlanPolygon" points="" stroke="#6366f1" stroke-width="2.5" fill="rgba(99, 102, 241, 0.15)" stroke-dasharray="4 2" class="hidden"/>
               </g>
-              
-              <!-- 2. 기둥(Column) -->
-              <g id="columnsGroup">
-                <rect x="20" y="20" width="16" height="16" fill="var(--cad-column)"/>
-                <rect x="300" y="20" width="16" height="16" fill="var(--cad-column)"/>
-                <rect x="620" y="20" width="16" height="16" fill="var(--cad-column)"/>
-                <rect x="904" y="20" width="16" height="16" fill="var(--cad-column)"/>
-                <rect x="20" y="290" width="16" height="16" fill="var(--cad-column)"/>
-                <rect x="300" y="290" width="16" height="16" fill="var(--cad-column)"/>
-                <rect x="620" y="290" width="16" height="16" fill="var(--cad-column)"/>
-                <rect x="904" y="290" width="16" height="16" fill="var(--cad-column)"/>
-                <rect x="20" y="564" width="16" height="16" fill="var(--cad-column)"/>
-                <rect x="300" y="564" width="16" height="16" fill="var(--cad-column)"/>
-                <rect x="620" y="564" width="16" height="16" fill="var(--cad-column)"/>
-                <rect x="904" y="564" width="16" height="16" fill="var(--cad-column)"/>
-              </g>
+            </svg>
+          </div>
+        </div>
 
-              <!-- 3. 복도 및 코어 구역 -->
-              <rect x="380" y="20" width="180" height="130" fill="var(--sidebar)" stroke="var(--cad-wall)" stroke-width="2"/>
-              <text id="coreTextTop" x="470" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--muted-foreground)">EV / E/S 중앙 코어</text>
-              <rect x="380" y="450" width="180" height="130" fill="var(--sidebar)" stroke="var(--cad-wall)" stroke-width="2"/>
-              <text id="coreTextBottom" x="470" y="520" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--muted-foreground)">EPS / TPS / 방재실</text>
-
-              <!-- 4. 특수 방화구역 / 제연구역 레이어 (두꺼운 붉은색 점선: stroke-width 4px, dash 8 4) -->
-              <g id="fireSmokeZoneLayer"></g>
-
-              <!-- 5. 구역 및 매장 레이어 (매장, EPS, 공조실, PS, AV-알람벨브, PD 위로는 라인 그리기 불가) -->
-              <g id="shopsLayer"></g>
-
-              <!-- 메인 복도 공급 라인 -->
-              <g id="mainCorridorPipes">
-                <path d="M 470 450 L 470 300 L 40 300" stroke="#0284c7" stroke-width="2.5" fill="none" opacity="0.35" stroke-dasharray="6 3"/>
-                <path d="M 470 300 L 900 300" stroke="#0284c7" stroke-width="2.5" fill="none" opacity="0.35" stroke-dasharray="6 3"/>
-                <path d="M 460 450 L 460 290 L 40 290" stroke="#ea580c" stroke-width="2.5" fill="none" opacity="0.35" stroke-dasharray="6 3"/>
-                <path d="M 460 290 L 900 290" stroke="#ea580c" stroke-width="2.5" fill="none" opacity="0.35" stroke-dasharray="6 3"/>
-              </g>
-
-              <!-- 6. 배관 및 덕트 레이어 (덕트는 두께 5배=17.5px, 투명도 50%, 녹색) -->
-              <g id="pipePathLayer"></g>
-
-              <!-- 7. 시설물 핀 레이어 -->
-              <g id="pinLayer"></g>
-
-              <!-- 8. 다중 선택 및 하이라이트 오버레이 레이어 (Shift+클릭 다중 선택 시 표시) -->
-              <g id="selectionOverlayLayer"></g>
-
-              <!-- 라인 그리기 시 실시간 점선 미리보기 -->
-              <polyline id="tempPolyline" points="" stroke="#0284c7" stroke-width="3.5" fill="none" stroke-dasharray="6 3" class="hidden"/>
-
-              <!-- 도면 그리기 시 실시간 외곽 다각형 미리보기 (내부선 없음) -->
-              <polygon id="tempPlanPolygon" points="" stroke="#6366f1" stroke-width="2.5" fill="rgba(99, 102, 241, 0.15)" stroke-dasharray="4 2" class="hidden"/>
-            </g>
-          </svg>
+        <!-- 모바일/태블릿 다중 선택 플로팅 액션 바 -->
+        <div id="mobileSelectionToolbar" class="hidden fixed bottom-14 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-3 py-1.5 rounded-full shadow-2xl flex items-center gap-2 text-xs font-semibold backdrop-blur border border-slate-700 dark:border-slate-300">
+          <span id="mobileSelCountText" class="text-[11px] font-mono pr-1 border-r border-slate-700 dark:border-slate-300">0개 선택</span>
+          <button onclick="copySelectedEntities()" class="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-medium">복제</button>
+          <button onclick="deleteSelectedEntities()" class="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-medium">삭제</button>
+          <button onclick="clearSelection()" class="pl-1 text-slate-400 hover:text-white dark:hover:text-slate-900 text-xs">✕</button>
         </div>
 
         <!-- 하단 계통 범례 바 -->
@@ -2197,6 +2288,7 @@
     // 라인 그리기 한 획 마침 (매장 내부 및 외벽 외부 클리핑, 방화/제연구획은 겹쳐 그리기 전체 보존)
     function finishPipeStroke() {
       if (!currentPipePoints || currentPipePoints.length < 2) return;
+      if (typeof recordHistoryState === 'function') recordHistoryState();
 
       const category = currentActiveCategory;
       const isFireOrSmoke = ['FIRE_ZONE', 'SMOKE_ZONE'].includes(category);
@@ -2280,6 +2372,7 @@
       // 건축 다각형 피팅 엔진: 꼭지점 짝수(최대 8개) 최소화, 45도 각도 사선, 내부선 삭제
       const boundaryPolygon = fitArchitecturePolygon(planDrawPoints);
       if (!boundaryPolygon || boundaryPolygon.length < 3) return;
+      if (typeof recordHistoryState === 'function') recordHistoryState();
 
       // 도면 그리기에서 '매장' 위에 '매장' 겹쳐 그리기 불가 검사
       const existingStores = shopsData.filter(s => (s.floor === currentFloor || (!s.floor && currentFloor === '2F')) && (s.zone_type === 'STORE' || !s.zone_type) && s.polygon);
@@ -2510,9 +2603,409 @@
     // ==========================================
     // 13. 전체 도면 렌더링
     // ==========================================
-    // 13. 개체 선택 및 다중 선택 (Shift+클릭) 시스템
+    // 13. 실행 취소 / 다시 실행 (Undo / Redo) 시스템
+    // ==========================================
+    let undoStack = [];
+    let redoStack = [];
+    const MAX_UNDO_LIMIT = 30;
+
+    function recordHistoryState() {
+      const snapshot = {
+        shops: JSON.stringify(shopsData),
+        plans: JSON.stringify(planObjectsData),
+        pipes: JSON.stringify(pipesData),
+        facilities: JSON.stringify(facilitiesData),
+        floor: currentFloor
+      };
+      undoStack.push(snapshot);
+      if (undoStack.length > MAX_UNDO_LIMIT) undoStack.shift();
+      redoStack = []; // 새 작업 시 redo 스택 초기화
+    }
+
+    function performUndo() {
+      if (undoStack.length === 0) {
+        showToast('실행 취소할 이전 작업이 없습니다.', 500);
+        return;
+      }
+      const currentSnapshot = {
+        shops: JSON.stringify(shopsData),
+        plans: JSON.stringify(planObjectsData),
+        pipes: JSON.stringify(pipesData),
+        facilities: JSON.stringify(facilitiesData),
+        floor: currentFloor
+      };
+      redoStack.push(currentSnapshot);
+
+      const prev = undoStack.pop();
+      shopsData = JSON.parse(prev.shops);
+      planObjectsData = JSON.parse(prev.plans);
+      pipesData = JSON.parse(prev.pipes);
+      facilitiesData = JSON.parse(prev.facilities);
+
+      saveLocalCache();
+      renderAll();
+      updateSelectionVisuals();
+      showToast('실행 취소 (Undo) 되었습니다.', 500);
+    }
+
+    function performRedo() {
+      if (redoStack.length === 0) {
+        showToast('다시 실행할 다음 작업이 없습니다.', 500);
+        return;
+      }
+      const currentSnapshot = {
+        shops: JSON.stringify(shopsData),
+        plans: JSON.stringify(planObjectsData),
+        pipes: JSON.stringify(pipesData),
+        facilities: JSON.stringify(facilitiesData),
+        floor: currentFloor
+      };
+      undoStack.push(currentSnapshot);
+
+      const next = redoStack.pop();
+      shopsData = JSON.parse(next.shops);
+      planObjectsData = JSON.parse(next.plans);
+      pipesData = JSON.parse(next.pipes);
+      facilitiesData = JSON.parse(next.facilities);
+
+      saveLocalCache();
+      renderAll();
+      updateSelectionVisuals();
+      showToast('다시 실행 (Redo) 되었습니다.', 500);
+    }
+
+    // ==========================================
+    // 14. 개체 복사 & 붙여넣기 (Ctrl+C / Ctrl+V)
+    // ==========================================
+    let clipboardEntities = [];
+
+    function copySelectedEntities() {
+      if (!multiSelectedMap || multiSelectedMap.size === 0) {
+        showToast('복사할 개체를 먼저 선택해 주세요.', 500);
+        return;
+      }
+      clipboardEntities = [];
+      multiSelectedMap.forEach(sel => {
+        clipboardEntities.push({
+          type: sel.type,
+          id: sel.id,
+          item: JSON.parse(JSON.stringify(sel.item))
+        });
+      });
+      showToast(`${clipboardEntities.length}개 개체 복사됨 (Ctrl+V로 붙여넣기)`, 500);
+    }
+
+    function pasteEntities() {
+      if (!clipboardEntities || clipboardEntities.length === 0) {
+        showToast('클립보드에 복사된 개체가 없습니다.', 500);
+        return;
+      }
+      recordHistoryState();
+      const offset = 25;
+      multiSelectedMap.clear();
+
+      clipboardEntities.forEach((entry, idx) => {
+        if (entry.type === 'pipe') {
+          const p = JSON.parse(JSON.stringify(entry.item));
+          p.id = 'P-' + Date.now() + '_' + idx;
+          p.name = p.name + ' (복사)';
+          p.points = p.points.trim().split(' ').map(s => {
+            const [x, y] = s.split(',').map(Number);
+            return `${Math.round(x + offset)},${Math.round(y + offset)}`;
+          }).join(' ');
+          p.floor = currentFloor;
+          pipesData.push(p);
+          multiSelectedMap.set('pipe:' + p.id, { type: 'pipe', id: p.id, item: p });
+        } else if (entry.type === 'shop' || entry.type === 'wall') {
+          const s = JSON.parse(JSON.stringify(entry.item));
+          s.id = (entry.type === 'wall' ? 'WALL-' : 'S-') + Date.now() + '_' + idx;
+          s.name = (s.name || '구역') + ' (복사)';
+          s.floor = currentFloor;
+          if (s.polygon && s.polygon.length >= 2) {
+            s.polygon = s.polygon.map(pt => ({
+              x: Math.round(pt.x + offset),
+              y: Math.round(pt.y + offset)
+            }));
+          }
+          if (entry.type === 'wall') {
+            planObjectsData.push(s);
+            multiSelectedMap.set('wall:' + s.id, { type: 'wall', id: s.id, item: s });
+          } else {
+            shopsData.push(s);
+            planObjectsData.push(s);
+            multiSelectedMap.set('shop:' + s.id, { type: 'shop', id: s.id, item: s });
+          }
+        }
+      });
+
+      saveLocalCache();
+      renderAll();
+      updateSelectionVisuals();
+      showToast(`${clipboardEntities.length}개 개체가 붙여넣어졌습니다.`, 500);
+    }
+
+    // ==========================================
+    // 15. 관로 치수 및 밸브 차단 라벨 오버레이 토글
+    // ==========================================
+    let showPipeLabels = false;
+
+    function togglePipeLabels() {
+      showPipeLabels = !showPipeLabels;
+      const dot = document.getElementById('labelStatusDot');
+      const btn = document.getElementById('pipeLabelToggleBtn');
+      if (dot) dot.className = `w-1.5 h-1.5 rounded-full ${showPipeLabels ? 'bg-blue-600' : 'bg-slate-400'}`;
+      if (btn) btn.classList.toggle('border-blue-500', showPipeLabels);
+      renderPipeLabels();
+      showToast(showPipeLabels ? '치수 및 밸브 라벨이 활성화되었습니다.' : '치수 라벨이 비활성화되었습니다.', 500);
+    }
+
+    function renderPipeLabels() {
+      const layer = document.getElementById('pipeLabelsOverlayLayer');
+      if (!layer) return;
+      if (!showPipeLabels) {
+        layer.innerHTML = '';
+        return;
+      }
+      const floorPipes = pipesData.filter(p => (p.floor === currentFloor || (!p.floor && currentFloor === '2F')) && matchesGroupFilter(p.category));
+      let html = '';
+      floorPipes.forEach(p => {
+        if (!p.points) return;
+        const pts = p.points.trim().split(' ').map(s => s.split(',').map(Number));
+        if (pts.length < 2) return;
+        const midIdx = Math.floor(pts.length / 2);
+        const p1 = pts[midIdx - 1];
+        const p2 = pts[midIdx];
+        const midX = Math.round((p1[0] + p2[0]) / 2);
+        const midY = Math.round((p1[1] + p2[1]) / 2);
+
+        const isDuct = ['HVAC_SUPPLY', 'HVAC_EXHAUST', 'KITCHEN_EXHAUST'].includes(p.category);
+        const label = `${p.spec || (isDuct ? '400x300' : '50A')} (${p.length || ''})`;
+        const isClosed = p.valve_open === false;
+
+        html += `
+          <g class="pipe-dim-badge" pointer-events="none">
+            <rect x="${midX - 35}" y="${midY - 14}" width="70" height="14" rx="3" fill="var(--card)" stroke="var(--border)" stroke-width="1" opacity="0.92"/>
+            <text x="${midX}" y="${midY - 3}" font-size="8.5" font-weight="bold" font-family="monospace" text-anchor="middle" fill="var(--foreground)">${label}</text>
+            ${isClosed ? `<rect x="${midX - 22}" y="${midY + 2}" width="44" height="12" rx="2" fill="#ef4444"/><text x="${midX}" y="${midY + 11}" font-size="8" font-weight="bold" text-anchor="middle" fill="#ffffff">차단됨</text>` : ''}
+          </g>
+        `;
+      });
+      layer.innerHTML = html;
+    }
+
+    // ==========================================
+    // 16. CAD 눈금자(Ruler) 및 직교 십자선 가이드
+    // ==========================================
+    let showRulerAndCrosshair = false;
+
+    function toggleRulerAndCrosshair() {
+      showRulerAndCrosshair = !showRulerAndCrosshair;
+      const dot = document.getElementById('rulerStatusDot');
+      const btn = document.getElementById('rulerToggleBtn');
+      const rulerTop = document.getElementById('rulerContainerTop');
+      const rulerLeft = document.getElementById('rulerContainerLeft');
+      const crossGroup = document.getElementById('crosshairGroup');
+
+      if (dot) dot.className = `w-1.5 h-1.5 rounded-full ${showRulerAndCrosshair ? 'bg-blue-600' : 'bg-slate-400'}`;
+      if (btn) btn.classList.toggle('border-blue-500', showRulerAndCrosshair);
+      if (rulerTop) rulerTop.classList.toggle('hidden', !showRulerAndCrosshair);
+      if (rulerLeft) rulerLeft.classList.toggle('hidden', !showRulerAndCrosshair);
+      if (crossGroup) crossGroup.classList.toggle('hidden', !showRulerAndCrosshair);
+
+      if (showRulerAndCrosshair) renderRulers();
+      showToast(showRulerAndCrosshair ? 'CAD 눈금자 및 십자선 가이드 활성화' : '눈금자 가이드 비활성화', 500);
+    }
+
+    function renderRulers() {
+      const topSvg = document.getElementById('rulerTopSvg');
+      const leftSvg = document.getElementById('rulerLeftSvg');
+      if (!topSvg || !leftSvg) return;
+
+      let topHtml = '';
+      for (let x = 0; x <= 1000; x += 20) {
+        const isMajor = x % 100 === 0;
+        const h = isMajor ? 12 : (x % 50 === 0 ? 8 : 4);
+        const m = Math.round(x * 0.12);
+        topHtml += `<line x1="${x}" y1="0" x2="${x}" y2="${h}" stroke="var(--muted-foreground)" stroke-width="1"/>`;
+        if (isMajor) {
+          topHtml += `<text x="${x + 2}" y="11" font-size="8" font-family="monospace" fill="var(--muted-foreground)">${m}m</text>`;
+        }
+      }
+      topSvg.innerHTML = topHtml;
+
+      let leftHtml = '';
+      for (let y = 0; y <= 650; y += 20) {
+        const isMajor = y % 100 === 0;
+        const w = isMajor ? 12 : (y % 50 === 0 ? 8 : 4);
+        const m = Math.round(y * 0.12);
+        leftHtml += `<line x1="0" y1="${y}" x2="${w}" y2="${y}" stroke="var(--muted-foreground)" stroke-width="1"/>`;
+        if (isMajor) {
+          leftHtml += `<text x="2" y="${y + 9}" font-size="8" font-family="monospace" fill="var(--muted-foreground)">${m}m</text>`;
+        }
+      }
+      leftSvg.innerHTML = leftHtml;
+    }
+
+    function updateCrosshair(svgPt) {
+      if (!showRulerAndCrosshair) return;
+      const lx = document.getElementById('crosshairX');
+      const ly = document.getElementById('crosshairY');
+      const badge = document.getElementById('crosshairBadgeBg');
+      const txt = document.getElementById('crosshairCoordText');
+      if (!lx || !ly || !txt) return;
+
+      lx.setAttribute('y1', svgPt.y);
+      lx.setAttribute('y2', svgPt.y);
+      ly.setAttribute('x1', svgPt.x);
+      ly.setAttribute('x2', svgPt.x);
+
+      const mX = (svgPt.x * 0.12).toFixed(1);
+      const mY = (svgPt.y * 0.12).toFixed(1);
+      txt.textContent = `X:${mX}m Y:${mY}m`;
+      txt.setAttribute('x', Math.min(920, svgPt.x + 8));
+      txt.setAttribute('y', Math.max(20, svgPt.y - 8));
+      if (badge) {
+        badge.setAttribute('x', Math.min(916, svgPt.x + 4));
+        badge.setAttribute('y', Math.max(8, svgPt.y - 20));
+      }
+    }
+
+    // ==========================================
+    // 17. 도면 레이어별 가시성(Show/Hide) 및 잠금(Lock) 관리자
+    // ==========================================
+    const layerConfig = {
+      WALL: { name: '건물 외벽', visible: true, locked: false },
+      STORE: { name: '매장/구역', visible: true, locked: false },
+      PIPE: { name: '배관/선로', visible: true, locked: false },
+      FIRE: { name: '소방/방화', visible: true, locked: false },
+      COLUMNS: { name: '기둥/코어', visible: true, locked: false }
+    };
+
+    function toggleLayerMenu(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById('layerMenuDropdown');
+      if (!menu) return;
+      const isHidden = menu.classList.contains('hidden');
+      menu.classList.toggle('hidden', !isHidden);
+      if (isHidden) renderLayerMenu();
+    }
+
+    function renderLayerMenu() {
+      const list = document.getElementById('layerMenuList');
+      if (!list) return;
+      list.innerHTML = Object.entries(layerConfig).map(([key, cfg]) => `
+        <div class="flex items-center justify-between p-1 rounded hover:bg-[var(--sidebar)]">
+          <span class="font-medium text-[11px] text-[var(--foreground)] truncate">${cfg.name}</span>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <!-- 가시성 토글 -->
+            <button onclick="toggleLayerVisibility('${key}')" class="p-0.5 rounded hover:bg-[var(--card)] text-xs" title="${cfg.visible ? '숨기기' : '표시'}">
+              ${cfg.visible 
+                ? '<svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>' 
+                : '<svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg>'}
+            </button>
+            <!-- 잠금 토글 -->
+            <button onclick="toggleLayerLock('${key}')" class="p-0.5 rounded hover:bg-[var(--card)] text-xs" title="${cfg.locked ? '잠금 해제' : '편집 잠금'}">
+              ${cfg.locked 
+                ? '<svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>' 
+                : '<svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>'}
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function toggleLayerVisibility(layerKey) {
+      if (!layerConfig[layerKey]) return;
+      layerConfig[layerKey].visible = !layerConfig[layerKey].visible;
+      applyLayerStyles();
+      renderLayerMenu();
+      showToast(`[${layerConfig[layerKey].name}] ${layerConfig[layerKey].visible ? '표시' : '숨김'}`, 500);
+    }
+
+    function toggleLayerLock(layerKey) {
+      if (!layerConfig[layerKey]) return;
+      layerConfig[layerKey].locked = !layerConfig[layerKey].locked;
+      renderLayerMenu();
+      showToast(`[${layerConfig[layerKey].name}] ${layerConfig[layerKey].locked ? '편집 잠금됨' : '잠금 해제됨'}`, 500);
+    }
+
+    function applyLayerStyles() {
+      const wallLayer = document.getElementById('wallLayer');
+      const shopsLayer = document.getElementById('shopsLayer');
+      const pipePathLayer = document.getElementById('pipePathLayer');
+      const cols = document.getElementById('columnsGroup');
+      const fzLayer = document.getElementById('fireSmokeZoneLayer');
+
+      if (wallLayer) wallLayer.style.display = layerConfig.WALL.visible ? '' : 'none';
+      if (shopsLayer) shopsLayer.style.display = layerConfig.STORE.visible ? '' : 'none';
+      if (pipePathLayer) pipePathLayer.style.display = layerConfig.PIPE.visible ? '' : 'none';
+      if (cols) cols.style.display = layerConfig.COLUMNS.visible ? '' : 'none';
+      if (fzLayer) fzLayer.style.display = layerConfig.FIRE.visible ? '' : 'none';
+    }
+
+    window.addEventListener('click', (e) => {
+      const menu = document.getElementById('layerMenuDropdown');
+      const btn = document.getElementById('layerMenuBtn');
+      if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && !btn.contains(e.target)) {
+        menu.classList.add('hidden');
+      }
+    });
+
+    // ==========================================
+    // 18. 매장 / 선로 실시간 검색 및 카메라 포커스
+    // ==========================================
+    function handleQuickSearch(query) {
+      if (!query || !query.trim()) return;
+      const q = query.trim().toLowerCase();
+
+      // 1. 매장 검색
+      const matchedShop = shopsData.find(s => (s.floor === currentFloor || (!s.floor && currentFloor === '2F')) && s.name.toLowerCase().includes(q));
+      if (matchedShop) {
+        focusOnEntity('shop', matchedShop.name);
+        return;
+      }
+
+      // 2. 배관 선로 검색
+      const matchedPipe = pipesData.find(p => (p.floor === currentFloor || (!p.floor && currentFloor === '2F')) && (p.name.toLowerCase().includes(q) || (p.spec && p.spec.toLowerCase().includes(q))));
+      if (matchedPipe) {
+        focusOnEntity('pipe', matchedPipe.id);
+      }
+    }
+
+    function focusOnEntity(type, id) {
+      let cx = 500, cy = 300;
+      if (type === 'shop') {
+        const s = shopsData.find(x => x.name === id || x.id === id);
+        if (s && s.polygon && s.polygon.length > 0) {
+          cx = s.polygon.reduce((sum, p) => sum + p.x, 0) / s.polygon.length;
+          cy = s.polygon.reduce((sum, p) => sum + p.y, 0) / s.polygon.length;
+        }
+      } else if (type === 'pipe') {
+        const p = pipesData.find(x => x.id === id);
+        if (p && p.points) {
+          const pts = p.points.trim().split(' ').map(s => s.split(',').map(Number));
+          cx = pts.reduce((sum, pt) => sum + pt[0], 0) / pts.length;
+          cy = pts.reduce((sum, pt) => sum + pt[1], 0) / pts.length;
+        }
+      }
+
+      currentZoom = 1.3;
+      panX = Math.round(500 - cx * currentZoom);
+      panY = Math.round(320 - cy * currentZoom);
+      updateSceneTransform();
+      selectSingleItem(type, id);
+      showToast(`[${id}] 위치로 포커스되었습니다.`, 500);
+    }
+
+    // ==========================================
+    // 19. 다중 선택 및 변환(Resize/Rotate) 시스템
     // ==========================================
     let multiSelectedMap = new Map();
+    let isTransforming = false;
+    let transformMode = null; // 'resize' | 'rotate'
+    let transformStartPt = null;
+    let transformOrigBox = null;
+    let transformCenterPt = null;
 
     function getEntityData(type, id) {
       if (type === 'pipe') {
@@ -2526,6 +3019,10 @@
     }
 
     function toggleSelectItem(type, id, forceAdd = false) {
+      if (type === 'wall' && layerConfig.WALL.locked) return;
+      if (type === 'shop' && layerConfig.STORE.locked) return;
+      if (type === 'pipe' && layerConfig.PIPE.locked) return;
+
       const item = getEntityData(type, id);
       if (!item) return;
       const key = `${type}:${id}`;
@@ -2539,6 +3036,10 @@
     }
 
     function selectSingleItem(type, id) {
+      if (type === 'wall' && layerConfig.WALL.locked) return;
+      if (type === 'shop' && layerConfig.STORE.locked) return;
+      if (type === 'pipe' && layerConfig.PIPE.locked) return;
+
       const item = getEntityData(type, id);
       if (!item) return;
       multiSelectedMap.clear();
@@ -2554,22 +3055,39 @@
 
     function updateSelectionVisuals() {
       const overlay = document.getElementById('selectionOverlayLayer');
+      const tfLayer = document.getElementById('transformControlsLayer');
+      const mBar = document.getElementById('mobileSelectionToolbar');
+      const mTxt = document.getElementById('mobileSelCountText');
+
+      if (mBar && mTxt) {
+        if (multiSelectedMap.size > 0) {
+          mBar.classList.remove('hidden');
+          mTxt.innerText = `${multiSelectedMap.size}개 선택`;
+        } else {
+          mBar.classList.add('hidden');
+        }
+      }
+
       if (!overlay) return;
 
       if (multiSelectedMap.size === 0) {
         overlay.innerHTML = '';
+        if (tfLayer) tfLayer.innerHTML = '';
         return;
       }
 
       let html = '';
+      let allPoints = [];
+
       multiSelectedMap.forEach(({ type, id, item }) => {
         if (type === 'pipe') {
           if (item && item.points) {
             html += `<polyline points="${item.points}" fill="none" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.65" pointer-events="none"/>`;
             html += `<polyline points="${item.points}" fill="none" stroke="#0284c7" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>`;
+            const pts = item.points.trim().split(' ').map(s => s.split(',').map(Number));
+            pts.forEach(([x, y]) => allPoints.push({ x, y }));
           }
         } else {
-          // shop, wall, planObject
           let poly = item.polygon;
           if (!poly || poly.length < 3) {
             if (type === 'shop') {
@@ -2589,12 +3107,87 @@
             const ptsStr = poly.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join(' ');
             html += `<polygon points="${ptsStr}" fill="rgba(56, 189, 248, 0.18)" stroke="#0284c7" stroke-width="3" stroke-dasharray="6 3" pointer-events="none"/>`;
             poly.forEach(p => {
+              allPoints.push(p);
               html += `<rect x="${Math.round(p.x) - 4}" y="${Math.round(p.y) - 4}" width="8" height="8" fill="#ffffff" stroke="#0284c7" stroke-width="2" pointer-events="none"/>`;
             });
           }
         }
       });
       overlay.innerHTML = html;
+
+      // 크기 조절(Resize) 및 회전(Rotate) 핸들 렌더링
+      if (tfLayer && allPoints.length >= 2) {
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        allPoints.forEach(p => {
+          if (p.x < minX) minX = p.x;
+          if (p.x > maxX) maxX = p.x;
+          if (p.y < minY) minY = p.y;
+          if (p.y > maxY) maxY = p.y;
+        });
+
+        const cx = Math.round((minX + maxX) / 2);
+        const cy = Math.round((minY + maxY) / 2);
+        const rotY = minY - 24;
+
+        tfLayer.innerHTML = `
+          <!-- 바운딩 외곽선 -->
+          <rect x="${minX}" y="${minY}" width="${maxX - minX}" height="${maxY - minY}" fill="none" stroke="#0284c7" stroke-width="1" stroke-dasharray="2 2" pointer-events="none"/>
+          <!-- 회전 연결선 및 핸들 -->
+          <line x1="${cx}" y1="${minY}" x2="${cx}" y2="${rotY}" stroke="#0284c7" stroke-width="1.5" pointer-events="none"/>
+          <circle class="rotate-handle cursor-grab active:cursor-grabbing" cx="${cx}" cy="${rotY}" r="5" fill="#38bdf8" stroke="#0284c7" stroke-width="2" onmousedown="startRotateTransform(event, ${cx}, ${cy})"/>
+          <!-- 4개 모서리 크기 조절(Resize) 핸들 -->
+          <rect class="resize-handle cursor-nwse-resize" x="${minX - 4}" y="${minY - 4}" width="8" height="8" fill="#ffffff" stroke="#0284c7" stroke-width="2" onmousedown="startResizeTransform(event, 'tl', ${cx}, ${cy}, ${minX}, ${minY}, ${maxX}, ${maxY})"/>
+          <rect class="resize-handle cursor-nesw-resize" x="${maxX - 4}" y="${minY - 4}" width="8" height="8" fill="#ffffff" stroke="#0284c7" stroke-width="2" onmousedown="startResizeTransform(event, 'tr', ${cx}, ${cy}, ${minX}, ${minY}, ${maxX}, ${maxY})"/>
+          <rect class="resize-handle cursor-nwse-resize" x="${maxX - 4}" y="${maxY - 4}" width="8" height="8" fill="#ffffff" stroke="#0284c7" stroke-width="2" onmousedown="startResizeTransform(event, 'br', ${cx}, ${cy}, ${minX}, ${minY}, ${maxX}, ${maxY})"/>
+          <rect class="resize-handle cursor-nesw-resize" x="${minX - 4}" y="${maxY - 4}" width="8" height="8" fill="#ffffff" stroke="#0284c7" stroke-width="2" onmousedown="startResizeTransform(event, 'bl', ${cx}, ${cy}, ${minX}, ${minY}, ${maxX}, ${maxY})"/>
+        `;
+      } else if (tfLayer) {
+        tfLayer.innerHTML = '';
+      }
+    }
+
+    function startRotateTransform(e, cx, cy) {
+      e.stopPropagation();
+      e.preventDefault();
+      recordHistoryState();
+      isTransforming = true;
+      transformMode = 'rotate';
+      transformCenterPt = { x: cx, y: cy };
+      snapshotSelectedEntitiesOrig();
+    }
+
+    function startResizeTransform(e, corner, cx, cy, minX, minY, maxX, maxY) {
+      e.stopPropagation();
+      e.preventDefault();
+      recordHistoryState();
+      isTransforming = true;
+      transformMode = 'resize';
+      transformCenterPt = { x: cx, y: cy };
+      transformOrigBox = { minX, minY, maxX, maxY, w: Math.max(1, maxX - minX), h: Math.max(1, maxY - minY) };
+      snapshotSelectedEntitiesOrig();
+    }
+
+    function snapshotSelectedEntitiesOrig() {
+      multiDragSnapshot = [];
+      multiSelectedMap.forEach(sel => {
+        if (sel.type === 'shop' || sel.type === 'wall') {
+          multiDragSnapshot.push({
+            type: sel.type,
+            item: sel.item,
+            origPolygon: (sel.item.polygon || []).map(p => ({ x: p.x, y: p.y }))
+          });
+        } else if (sel.type === 'pipe') {
+          const pts = (sel.item.points || '').trim().split(' ').map(s => {
+            const [x, y] = s.split(',').map(Number);
+            return { x, y };
+          });
+          multiDragSnapshot.push({
+            type: 'pipe',
+            item: sel.item,
+            origPoints: pts
+          });
+        }
+      });
     }
 
     function handleWallClick(e, wallId) {
@@ -2642,6 +3235,7 @@
 
     // ==========================================
     function renderAll() {
+      applyLayerStyles();
       renderWallAndSpecialZones();
       renderShopsLayer();
       renderShopsList();
@@ -2649,6 +3243,7 @@
       renderFacilities();
       renderPipesList();
       renderFloorButtons();
+      renderPipeLabels();
       updateSelectionVisuals();
     }
 
@@ -3115,6 +3710,7 @@
         showToast('게스트는 삭제 권한이 없습니다.', 500);
         return;
       }
+      if (typeof recordHistoryState === 'function') recordHistoryState();
 
       // 1. 다중/단일 선택된 개체가 있는 경우 확인 팝업 없이 즉시 일괄 삭제
       if (multiSelectedMap && multiSelectedMap.size > 0) {
@@ -3173,7 +3769,7 @@
       }
     }
 
-    // 스페이스바 팬 모드 & Delete 키 즉시 삭제 리스너
+    // 스페이스바 팬 모드 & 단축키 시스템 (Undo, Redo, Copy, Paste, Delete, Search)
     let spaceListenersInitialized = false;
     function initSpacePanListeners() {
       if (spaceListenersInitialized) return;
@@ -3181,9 +3777,47 @@
 
       window.addEventListener('keydown', (e) => {
         const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+        const isInputFocused = (tag === 'input' || tag === 'textarea' || tag === 'select');
 
-        // Delete 또는 Del 키 누를 시 삭제 (확인 팝업 없이 즉시 삭제)
+        // 단축키: / (검색창 포커스)
+        if (e.key === '/' && !isInputFocused) {
+          e.preventDefault();
+          const searchInput = document.getElementById('quickSearchInput');
+          if (searchInput) searchInput.focus();
+          return;
+        }
+
+        if (isInputFocused) return;
+
+        // 단축키: Ctrl + Z (실행 취소 Undo)
+        if (e.ctrlKey && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+          e.preventDefault();
+          performUndo();
+          return;
+        }
+
+        // 단축키: Ctrl + Y 또는 Ctrl + Shift + Z (다시 실행 Redo)
+        if ((e.ctrlKey && (e.key === 'y' || e.key === 'Y')) || (e.ctrlKey && e.shiftKey && (e.key === 'z' || e.key === 'Z'))) {
+          e.preventDefault();
+          performRedo();
+          return;
+        }
+
+        // 단축키: Ctrl + C (복사)
+        if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) {
+          e.preventDefault();
+          copySelectedEntities();
+          return;
+        }
+
+        // 단축키: Ctrl + V (붙여넣기)
+        if (e.ctrlKey && (e.key === 'v' || e.key === 'V')) {
+          e.preventDefault();
+          pasteEntities();
+          return;
+        }
+
+        // 단축키: Delete 또는 Del (확인 팝업 없이 즉시 삭제)
         if (e.key === 'Delete' || e.key === 'Del') {
           if (isDrawingPipeMode || isDrawingPlanMode || isMapEditMode || (multiSelectedMap && multiSelectedMap.size > 0)) {
             e.preventDefault();
@@ -3216,9 +3850,11 @@
     }
 
     // ==========================================
-    // 맵 편집 모드: 라인, 외벽, 도면 도형 다중 선택 및 드래그 이동 기능
+    // 맵 편집 모드: 라인, 외벽, 도면 도형 다중 선택, 드래그 이동, 변환(Resize/Rotate), 영역(Box) 선택
     // ==========================================
     let isDraggingMapItem = false;
+    let isBoxSelecting = false;
+    let boxSelectStartPt = null;
     let multiDragSnapshot = [];
     let dragStartClientX = 0;
     let dragStartClientY = 0;
@@ -3227,6 +3863,7 @@
     function initMapEditDragListeners() {
       const vp = document.getElementById('viewport');
       const svg = document.getElementById('cadSvg');
+      const rubberBox = document.getElementById('rubberBandBox');
       if (!vp || !svg) return;
 
       function getSvgPt(clientX, clientY) {
@@ -3238,21 +3875,33 @@
       }
 
       vp.addEventListener('mousedown', (e) => {
-        if (isSpacePressed) return;
-        // 맵 편집 모드이거나 이미 선택된 개체들이 있거나 Shift 클릭인 경우 인터랙션 시작
-        const hasSelection = multiSelectedMap && multiSelectedMap.size > 0;
-        if (!isMapEditMode && !hasSelection && !e.shiftKey) return;
+        if (isSpacePressed || isTransforming) return;
 
         const shopEl = e.target.closest('.shop-box');
         const pipeEl = e.target.closest('.pipe-path');
         const wallEl = e.target.closest('.cad-outer-wall');
 
+        // A. 빈 배경 클릭 시: 영역(Box) 드래그 선택 시작
         if (!shopEl && !pipeEl && !wallEl) {
-          if (!e.shiftKey && (isMapEditMode || hasSelection)) {
+          if (isMapEditMode || e.shiftKey) {
+            isBoxSelecting = true;
+            boxSelectStartPt = getSvgPt(e.clientX, e.clientY);
+            if (rubberBox) {
+              rubberBox.setAttribute('x', boxSelectStartPt.x);
+              rubberBox.setAttribute('y', boxSelectStartPt.y);
+              rubberBox.setAttribute('width', '0');
+              rubberBox.setAttribute('height', '0');
+              rubberBox.classList.remove('hidden');
+            }
+          } else {
             clearSelection();
           }
           return;
         }
+
+        // B. 개체 클릭 시: 선택 및 드래그 이동 준비
+        const hasSelection = multiSelectedMap && multiSelectedMap.size > 0;
+        if (!isMapEditMode && !hasSelection && !e.shiftKey) return;
 
         let clickedType = null;
         let clickedId = null;
@@ -3274,13 +3923,16 @@
 
         if (!clickedItem) return;
 
+        // 레이어 잠금 확인
+        if (clickedType === 'wall' && layerConfig.WALL.locked) return;
+        if (clickedType === 'shop' && layerConfig.STORE.locked) return;
+        if (clickedType === 'pipe' && layerConfig.PIPE.locked) return;
+
         const clickedKey = `${clickedType}:${clickedId}`;
 
         if (e.shiftKey) {
-          // Shift + 클릭: 다중 선택 토글
           toggleSelectItem(clickedType, clickedId);
         } else {
-          // 일반 클릭: 기존 선택에 포함되어 있지 않다면 단일 선택으로 전환
           if (!multiSelectedMap.has(clickedKey)) {
             selectSingleItem(clickedType, clickedId);
           }
@@ -3337,8 +3989,75 @@
       });
 
       window.addEventListener('mousemove', (e) => {
-        if (!isDraggingMapItem || multiDragSnapshot.length === 0) return;
         const currSvgPt = getSvgPt(e.clientX, e.clientY);
+        updateCrosshair(currSvgPt);
+
+        // A. 변환 (Resize & Rotate) 인터랙션 진행
+        if (isTransforming && multiDragSnapshot.length > 0 && transformCenterPt) {
+          const cx = transformCenterPt.x;
+          const cy = transformCenterPt.y;
+
+          if (transformMode === 'rotate') {
+            const angle = Math.atan2(currSvgPt.y - cy, currSvgPt.x - cx) * 180 / Math.PI + 90;
+            const snapAngle = e.shiftKey ? Math.round(angle / 45) * 45 : Math.round(angle / 15) * 15;
+            const rad = snapAngle * Math.PI / 180;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
+
+            multiDragSnapshot.forEach(snap => {
+              if (snap.type === 'shop' || snap.type === 'wall') {
+                snap.item.polygon = snap.origPolygon.map(p => ({
+                  x: Math.round(cx + (p.x - cx) * cos - (p.y - cy) * sin),
+                  y: Math.round(cy + (p.x - cx) * sin + (p.y - cy) * cos)
+                }));
+              } else if (snap.type === 'pipe') {
+                snap.item.points = snap.origPoints.map(p => {
+                  const rx = Math.round(cx + (p.x - cx) * cos - (p.y - cy) * sin);
+                  const ry = Math.round(cy + (p.x - cx) * sin + (p.y - cy) * cos);
+                  return `${rx},${ry}`;
+                }).join(' ');
+              }
+            });
+            renderAll();
+          } else if (transformMode === 'resize' && transformOrigBox) {
+            const origDist = Math.hypot(transformOrigBox.w, transformOrigBox.h) / 2;
+            const currDist = Math.hypot(currSvgPt.x - cx, currSvgPt.y - cy);
+            const scale = Math.max(0.2, Math.min(currDist / origDist, 4.0));
+
+            multiDragSnapshot.forEach(snap => {
+              if (snap.type === 'shop' || snap.type === 'wall') {
+                snap.item.polygon = snap.origPolygon.map(p => ({
+                  x: Math.round(cx + (p.x - cx) * scale),
+                  y: Math.round(cy + (p.y - cy) * scale)
+                }));
+              } else if (snap.type === 'pipe') {
+                snap.item.points = snap.origPoints.map(p => {
+                  const sx = Math.round(cx + (p.x - cx) * scale);
+                  const sy = Math.round(cy + (p.y - cy) * scale);
+                  return `${sx},${sy}`;
+                }).join(' ');
+              }
+            });
+            renderAll();
+          }
+          return;
+        }
+
+        // B. 드래그 영역(Rubber-Band) 선택 박스 업데이트
+        if (isBoxSelecting && boxSelectStartPt && rubberBox) {
+          const minX = Math.min(boxSelectStartPt.x, currSvgPt.x);
+          const minY = Math.min(boxSelectStartPt.y, currSvgPt.y);
+          const w = Math.abs(currSvgPt.x - boxSelectStartPt.x);
+          const h = Math.abs(currSvgPt.y - boxSelectStartPt.y);
+          rubberBox.setAttribute('x', minX);
+          rubberBox.setAttribute('y', minY);
+          rubberBox.setAttribute('width', w);
+          rubberBox.setAttribute('height', h);
+          return;
+        }
+
+        // C. 다중 개체 평행 드래그 이동
+        if (!isDraggingMapItem || multiDragSnapshot.length === 0) return;
         const dx = currSvgPt.x - dragStartSvgPt.x;
         const dy = currSvgPt.y - dragStartSvgPt.y;
 
@@ -3381,6 +4100,69 @@
       });
 
       window.addEventListener('mouseup', (e) => {
+        // A. 변환(Resize/Rotate) 마침
+        if (isTransforming) {
+          isTransforming = false;
+          transformMode = null;
+          transformCenterPt = null;
+          transformOrigBox = null;
+          multiDragSnapshot = [];
+          saveLocalCache();
+          renderAll();
+          showToast('개체 크기/회전 변환이 저장되었습니다.', 500);
+          return;
+        }
+
+        // B. 드래그 영역(Rubber-Band) 선택 완료
+        if (isBoxSelecting && boxSelectStartPt && rubberBox) {
+          const currSvgPt = getSvgPt(e.clientX, e.clientY);
+          isBoxSelecting = false;
+          rubberBox.classList.add('hidden');
+
+          const minX = Math.min(boxSelectStartPt.x, currSvgPt.x);
+          const maxX = Math.max(boxSelectStartPt.x, currSvgPt.x);
+          const minY = Math.min(boxSelectStartPt.y, currSvgPt.y);
+          const maxY = Math.max(boxSelectStartPt.y, currSvgPt.y);
+          const box = { minX, maxX, minY, maxY };
+
+          if (Math.hypot(maxX - minX, maxY - minY) >= 10) {
+            if (!e.shiftKey) multiSelectedMap.clear();
+
+            // 현재 층의 매장, 외벽, 배관 검사
+            shopsData.forEach(s => {
+              if ((s.floor === currentFloor || (!s.floor && currentFloor === '2F')) && !layerConfig.STORE.locked) {
+                if (s.polygon && s.polygon.some(p => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY)) {
+                  multiSelectedMap.set(`shop:${s.id || s.name}`, { type: 'shop', id: s.id || s.name, item: s });
+                }
+              }
+            });
+
+            planObjectsData.forEach(o => {
+              if ((o.floor === currentFloor || (!o.floor && currentFloor === '2F')) && o.type === 'WALL' && !layerConfig.WALL.locked) {
+                if (o.polygon && o.polygon.some(p => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY)) {
+                  multiSelectedMap.set(`wall:${o.id}`, { type: 'wall', id: o.id, item: o });
+                }
+              }
+            });
+
+            pipesData.forEach(p => {
+              if ((p.floor === currentFloor || (!p.floor && currentFloor === '2F')) && !layerConfig.PIPE.locked) {
+                if (p.points) {
+                  const pts = p.points.trim().split(' ').map(s => s.split(',').map(Number));
+                  if (pts.some(([x, y]) => x >= minX && x <= maxX && y >= minY && y <= maxY)) {
+                    multiSelectedMap.set(`pipe:${p.id}`, { type: 'pipe', id: p.id, item: p });
+                  }
+                }
+              }
+            });
+
+            updateSelectionVisuals();
+            showToast(`${multiSelectedMap.size}개 개체가 영역 선택되었습니다.`, 500);
+          }
+          return;
+        }
+
+        // C. 다중 드래그 이동 마침
         if (!isDraggingMapItem) return;
         const dist = Math.hypot(e.clientX - dragStartClientX, e.clientY - dragStartClientY);
         isDraggingMapItem = false;
@@ -3388,6 +4170,7 @@
         multiDragSnapshot = [];
 
         if (dist >= 5) {
+          recordHistoryState();
           saveLocalCache();
           renderAll();
           updateSelectionVisuals();
