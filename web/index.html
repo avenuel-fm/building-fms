@@ -121,12 +121,22 @@
       fill: rgba(249, 115, 22, 0.15) !important;
     }
 
-    /* 도면 그리기 모드 시 캔버스 커서 */
-    .mode-drawing-pipe #viewport {
-      cursor: crosshair !important;
+    /* 도면 그리기 & 라인 그리기 모드 시 연필 커서 (핫스팟: 연필촉 2 22) */
+    body.mode-drawing-pipe #viewport,
+    body.mode-drawing-plan #viewport {
+      cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%23ffffff' stroke='%230f172a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z'/%3E%3Cpath d='m15 5 4 4'/%3E%3C/svg%3E") 2 22, crosshair !important;
     }
-    .mode-drawing-plan #viewport {
-      cursor: cell !important;
+
+    /* 스페이스바 누를 때 손모양 커서 (뷰어 이동/팬 모드 활성) */
+    body.space-pan-active #viewport,
+    body.space-pan-active.mode-drawing-pipe #viewport,
+    body.space-pan-active.mode-drawing-plan #viewport {
+      cursor: grab !important;
+    }
+    body.space-pan-active.is-panning #viewport,
+    body.space-pan-active.is-panning.mode-drawing-pipe #viewport,
+    body.space-pan-active.is-panning.mode-drawing-plan #viewport {
+      cursor: grabbing !important;
     }
   </style>
 </head>
@@ -313,9 +323,9 @@
           </div>
           
           <div class="grid grid-cols-2 gap-1.5">
-            <!-- 1. '라인그리기' 버튼 (연속 그리기, 5mm직선/사선, 금지구역 자동 끊김, 같은 속성 이어그리기) -->
+            <!-- 1. '라인 그리기' 버튼 (연속 그리기, 5mm직선/사선, 금지구역 자동 끊김, 같은 속성 이어그리기) -->
             <button onclick="toggleDrawingPipe()" id="drawPipeBtn" class="py-1.5 px-1 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-semibold text-xs text-center hover:opacity-90 truncate transition-colors">
-              라인그리기
+              라인 그리기
             </button>
             
             <!-- 2. '도면 그리기' 버튼 (곡선인식 제거, 5mm직선/사선, 내부선 삭제 다각형 완성) -->
@@ -838,8 +848,9 @@
     let selectedStore = null;
     let selectedGroup = 'ALL'; // ALL | GROUP_PIPE | GROUP_DUCT | GROUP_ELEC | GROUP_FIRE
     let isMapEditMode = false;
-    let isDrawingPipeMode = false; // '라인그리기' 모드
+    let isDrawingPipeMode = false; // '라인 그리기' 모드
     let isDrawingPlanMode = false; // '도면 그리기' 모드
+    let isSpacePressed = false; // 스페이스바 팬 모드 상태 (손모양 커서 & 뷰어 화면이동)
 
     // 현재 활성화된 라인 상세 속성 (기본: 급수)
     let currentActiveCategory = 'WATER_SUPPLY';
@@ -1447,7 +1458,7 @@
         btn.className = isDrawingPipeMode
           ? 'py-1.5 px-1 bg-blue-600 text-white rounded font-bold text-xs text-center truncate shadow'
           : 'py-1.5 px-1 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-semibold text-xs text-center truncate';
-        btn.innerText = isDrawingPipeMode ? '라인그리기 종료' : '라인그리기';
+        btn.innerText = isDrawingPipeMode ? '라인 그리기 종료' : '라인 그리기';
       }
 
       if (badge && badgeText) {
@@ -1458,7 +1469,7 @@
 
       if (cadStatus) {
         cadStatus.innerText = isDrawingPipeMode
-          ? `[${currentFloor}] 드래그하여 라인을 그리세요 (5mm이내 직선, 초과 대각선 / 구역 닿으면 자동 끊김)`
+          ? `[${currentFloor}] 드래그하여 라인을 그리세요 (스페이스바: 손모양 화면이동 / 구역 닿으면 자동 끊김)`
           : `${currentFloor} 평면도 관제 화면`;
       }
 
@@ -1466,7 +1477,7 @@
     }
 
     // ==========================================
-    // 8. '도면 그리기' 모드 토글 (곡선 제거, 5mm직선/사선, 내부선 삭제)
+    // 8. '도면 그리기' 모드 토글 (스페이스바 손모양 화면이동, 짝수 다각형 피팅)
     // ==========================================
     function toggleDrawingPlan(forceState) {
       if (currentUser.role === 'guest') {
@@ -1497,54 +1508,167 @@
 
       if (cadStatus) {
         cadStatus.innerText = isDrawingPlanMode
-          ? `[${currentFloor}] 마우스로 외벽/구역 다각형을 그리세요 (내부선 자동 삭제 / 다각형 완성)`
+          ? `[${currentFloor}] 마우스로 외벽/구역을 그리세요 (스페이스바: 손모양 화면이동 / 짝수 꼭지점 다각형 완성)`
           : `${currentFloor} 평면도 관제 화면`;
       }
 
       document.body.classList.toggle('mode-drawing-plan', isDrawingPlanMode);
     }
 
-    // 다각형 외곽 추출 알고리즘 (내부선 완전 삭제 & 순수 외곽 다각형 생성)
-    function extractBoundaryPolygon(pts) {
-      if (pts.length < 3) return null;
+    // ==========================================
+    // 건축 도면 다각형 피팅 엔진
+    // - 꼭지점은 반드시 짝수개 (4, 6, 8개 한정)
+    // - 최대 꼭지점 수는 8개로 엄격 제한
+    // - 형태를 갖추되 꼭지점 수 최소화 (4개 사각형 우선 -> 6개 L자/1모따기 -> 8개 모따기/홈)
+    // - 모든 사선은 정확히 45도 각도 단위 (Octilinear)
+    // - 다각형 내부선 완전 삭제 & 순수 외곽 폐다각형
+    // ==========================================
+    function fitArchitecturePolygon(pts) {
+      if (!pts || pts.length < 3) return null;
 
       // 1. 점 단순화 (인접 중복점 제거)
       const clean = [];
       for (let i = 0; i < pts.length; i++) {
-        if (clean.length === 0 || Math.hypot(pts[i].x - clean[clean.length - 1].x, pts[i].y - clean[clean.length - 1].y) > 10) {
-          clean.push(pts[i]);
+        const p = pts[i];
+        if (clean.length === 0 || Math.hypot(p.x - clean[clean.length - 1].x, p.y - clean[clean.length - 1].y) > 6) {
+          clean.push({ x: p.x, y: p.y });
         }
       }
       if (clean.length < 3) return null;
 
-      // 2. Monotone Chain Convex Hull 기반으로 다각형 내부로 들어간 선/점들을 완전히 제거하고 외곽 경계만 추출
-      clean.sort((a, b) => a.x === b.x ? a.y - b.y : a.x - b.x);
-
-      function cross(o, a, b) {
-        return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-      }
-
-      const lower = [];
+      // 2. 바운딩 박스 (AABB) 계산
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
       for (const p of clean) {
-        while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
-          lower.pop();
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+      }
+      const w = maxX - minX;
+      const h = maxY - minY;
+      if (w < 15 || h < 15) return null;
+
+      // 3. Douglas-Peucker (RDP) 알고리즘으로 주요 코너 추출
+      function getSqSegDist(p, p1, p2) {
+        let x = p1.x, y = p1.y, dx = p2.x - x, dy = p2.y - y;
+        if (dx !== 0 || dy !== 0) {
+          const t = ((p.x - x) * dx + (p.y - y) * dy) / (dx * dx + dy * dy);
+          if (t > 1) { x = p2.x; y = p2.y; }
+          else if (t > 0) { x += dx * t; y += dy * t; }
         }
-        lower.push(p);
+        return (p.x - x) ** 2 + (p.y - y) ** 2;
       }
 
-      const upper = [];
-      for (let i = clean.length - 1; i >= 0; i--) {
-        const p = clean[i];
-        while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
-          upper.pop();
+      function rdp(points, tolerance) {
+        if (points.length <= 2) return points;
+        let maxSqDist = tolerance * tolerance;
+        let index = -1;
+        for (let i = 1; i < points.length - 1; i++) {
+          const sqDist = getSqSegDist(points[i], points[0], points[points.length - 1]);
+          if (sqDist > maxSqDist) {
+            index = i;
+            maxSqDist = sqDist;
+          }
         }
-        upper.push(p);
+        if (index !== -1) {
+          const left = rdp(points.slice(0, index + 1), tolerance);
+          const right = rdp(points.slice(index), tolerance);
+          return left.slice(0, left.length - 1).concat(right);
+        }
+        return [points[0], points[points.length - 1]];
       }
 
-      lower.pop();
-      upper.pop();
-      const hull = lower.concat(upper);
-      return hull.length >= 3 ? hull : clean;
+      // 닫힌 루프로 만들기 위해 첫점 복제
+      const closedClean = clean.slice();
+      if (Math.hypot(closedClean[0].x - closedClean[closedClean.length - 1].x, closedClean[0].y - closedClean[closedClean.length - 1].y) > 10) {
+        closedClean.push({ x: closedClean[0].x, y: closedClean[0].y });
+      }
+
+      // 점진적 RDP: 형태를 유지하면서 최적 코너 추출
+      let corners = rdp(closedClean, Math.max(12, Math.min(w, h) * 0.08));
+      if (corners.length > 1 && Math.hypot(corners[0].x - corners[corners.length - 1].x, corners[0].y - corners[corners.length - 1].y) < 15) {
+        corners.pop();
+      }
+
+      // 꼭지점 개수 결정 (짝수 4, 6, 8개 중 하나 & 최소화)
+      let targetK = 4;
+      if (corners.length <= 4) targetK = 4;
+      else if (corners.length <= 6) targetK = 6;
+      else targetK = 8; // 최대 8개로 엄격 한정
+
+      // 타겟 꼭지점 수보다 많으면 가장 짧은 변을 합쳐 축소
+      while (corners.length > targetK) {
+        let minEdgeLen = Infinity, minEdgeIdx = 0;
+        for (let i = 0; i < corners.length; i++) {
+          const j = (i + 1) % corners.length;
+          const d = Math.hypot(corners[j].x - corners[i].x, corners[j].y - corners[i].y);
+          if (d < minEdgeLen) {
+            minEdgeLen = d;
+            minEdgeIdx = i;
+          }
+        }
+        const nextIdx = (minEdgeIdx + 1) % corners.length;
+        corners[minEdgeIdx] = {
+          x: Math.round((corners[minEdgeIdx].x + corners[nextIdx].x) / 2),
+          y: Math.round((corners[minEdgeIdx].y + corners[nextIdx].y) / 2)
+        };
+        corners.splice(nextIdx, 1);
+      }
+
+      // 짝수 보정: 홀수(5, 7)일 경우 영향이 적은 점을 합쳐 짝수(4, 6)로 정돈
+      if (corners.length % 2 !== 0) {
+        let minLen = Infinity, minIdx = 0;
+        for (let i = 0; i < corners.length; i++) {
+          const j = (i + 1) % corners.length;
+          const d = Math.hypot(corners[j].x - corners[i].x, corners[j].y - corners[i].y);
+          if (d < minLen) { minLen = d; minIdx = i; }
+        }
+        const nextIdx = (minIdx + 1) % corners.length;
+        corners[minIdx] = {
+          x: Math.round((corners[minIdx].x + corners[nextIdx].x) / 2),
+          y: Math.round((corners[minIdx].y + corners[nextIdx].y) / 2)
+        };
+        corners.splice(nextIdx, 1);
+      }
+
+      // 꼭지점이 4 미만이면 바운딩 박스 사각형(4개) 생성
+      if (corners.length < 4) {
+        return [
+          { x: Math.round(minX), y: Math.round(minY) },
+          { x: Math.round(maxX), y: Math.round(minY) },
+          { x: Math.round(maxX), y: Math.round(maxY) },
+          { x: Math.round(minX), y: Math.round(maxY) }
+        ];
+      }
+
+      // 4. 사선 발생 시 45도 각도 단위 스냅 (Octilinear: 0°, 45°, 90°, 135° 등)
+      const snappedPoly = corners.map(p => ({ x: Math.round(p.x), y: Math.round(p.y) }));
+      for (let i = 0; i < snappedPoly.length; i++) {
+        const j = (i + 1) % snappedPoly.length;
+        const p1 = snappedPoly[i];
+        const p2 = snappedPoly[j];
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        const snapAngle = Math.round(angle / 45) * 45;
+
+        if (snapAngle === 0 || snapAngle === 180 || snapAngle === -180) {
+          p2.y = p1.y; // 수평선
+        } else if (snapAngle === 90 || snapAngle === -90) {
+          p2.x = p1.x; // 수직선
+        } else {
+          // 45도 사선: |dx| === |dy| 보장!
+          const signX = Math.cos(snapAngle * Math.PI / 180) > 0 ? 1 : -1;
+          const signY = Math.sin(snapAngle * Math.PI / 180) > 0 ? 1 : -1;
+          const avgD = Math.round((Math.abs(dx) + Math.abs(dy)) / 2);
+          p2.x = p1.x + signX * avgD;
+          p2.y = p1.y + signY * avgD;
+        }
+      }
+
+      return snappedPoly;
     }
 
     // ==========================================
@@ -1567,6 +1691,7 @@
 
       // 마우스 다운
       vp.addEventListener('mousedown', (e) => {
+        if (isSpacePressed) return; // 스페이스바 팬 모드 시 드로잉 차단
         const svgPt = getSvgPoint(e.clientX, e.clientY);
 
         // A. 라인그리기 모드
@@ -1609,6 +1734,7 @@
 
       // 마우스 무브
       window.addEventListener('mousemove', (e) => {
+        if (isSpacePressed || isPanning) return; // 스페이스바 화면 이동 중에는 선 그리기 방지
         const svgPt = getSvgPoint(e.clientX, e.clientY);
 
         // A. 라인그리기 진행
@@ -1804,12 +1930,12 @@
       currentPipePoints = [];
     }
 
-    // 도면 그리기 한 획 마침 (내부선 완전 삭제 & 순수 외곽 다각형 완성)
+    // 도면 그리기 한 획 마침 (짝수 꼭지점 4/6/8 최소화 & 45도 각도 사선 다각형 완성)
     function finishPlanStroke() {
       if (!planDrawPoints || planDrawPoints.length < 3) return;
 
-      // 다각형 외곽 추출: 내부로 들어간 선/점들을 완전히 삭제하고 경계 다각형만 추출
-      const boundaryPolygon = extractBoundaryPolygon(planDrawPoints);
+      // 건축 다각형 피팅 엔진: 꼭지점 짝수(최대 8개) 최소화, 45도 각도 사선, 내부선 삭제
+      const boundaryPolygon = fitArchitecturePolygon(planDrawPoints);
       if (!boundaryPolygon || boundaryPolygon.length < 3) return;
 
       const newId = 'OBJ-' + Date.now();
@@ -1840,7 +1966,7 @@
       renderAll();
 
       const cadStatus = document.getElementById('cadStatusText');
-      if (cadStatus) cadStatus.innerText = `다각형 완성 (내부선 정리됨)! 도형을 클릭하여 외벽, 알람벨브, 방화구역 속성을 설정하세요.`;
+      if (cadStatus) cadStatus.innerText = `다각형 완성 (꼭지점 ${boundaryPolygon.length}개 / 45도 정렬)! 도형을 클릭하여 외벽, 알람벨브, 방화구역 속성을 설정하세요.`;
       planDrawPoints = [];
     }
 
@@ -2396,8 +2522,12 @@
       if (!vp) return;
 
       vp.addEventListener('mousedown', (e) => {
-        if (isDrawingPipeMode || isDrawingPlanMode) return;
+        // 그리기 모드일 때 스페이스바를 누른 경우에만 화면 이동(패닝) 허용
+        const isDrawing = isDrawingPipeMode || isDrawingPlanMode;
+        if (isDrawing && !isSpacePressed) return;
+
         isPanning = true;
+        document.body.classList.add('is-panning');
         startPanX = e.clientX - panX;
         startPanY = e.clientY - panY;
       });
@@ -2407,7 +2537,12 @@
         panY = e.clientY - startPanY;
         updateSceneTransform();
       });
-      window.addEventListener('mouseup', () => { isPanning = false; });
+      window.addEventListener('mouseup', () => {
+        isPanning = false;
+        document.body.classList.remove('is-panning');
+      });
+
+      initSpacePanListeners();
 
       vp.addEventListener('touchstart', (e) => {
         if (isDrawingPipeMode || isDrawingPlanMode) return;
@@ -2443,6 +2578,38 @@
         if (e.deltaY < 0) zoomIn();
         else zoomOut();
       }, { passive: false });
+    }
+
+    // 스페이스바 팬 모드 리스너 (그리기 중 스페이스바 누르면 손모양 커서 및 화면 이동)
+    let spaceListenersInitialized = false;
+    function initSpacePanListeners() {
+      if (spaceListenersInitialized) return;
+      spaceListenersInitialized = true;
+
+      window.addEventListener('keydown', (e) => {
+        const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+        if (e.code === 'Space' && !e.repeat) {
+          e.preventDefault();
+          isSpacePressed = true;
+          document.body.classList.add('space-pan-active');
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        if (e.code === 'Space') {
+          isSpacePressed = false;
+          document.body.classList.remove('space-pan-active', 'is-panning');
+          isPanning = false;
+        }
+      });
+
+      window.addEventListener('blur', () => {
+        isSpacePressed = false;
+        document.body.classList.remove('space-pan-active', 'is-panning');
+        isPanning = false;
+      });
     }
 
     function toggleTheme() {
