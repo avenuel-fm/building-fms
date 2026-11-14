@@ -348,26 +348,55 @@
           </div>
           
           <div class="grid grid-cols-2 gap-1.5">
-            <!-- 1. '라인 그리기' 버튼 (연속 그리기, 5mm직선/사선, 금지구역 자동 끊김, 같은 속성 이어그리기) -->
-            <button onclick="toggleDrawingPipe()" id="drawPipeBtn" class="py-1.5 px-1 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-semibold text-xs text-center hover:opacity-90 truncate transition-colors">
+            <!-- 1. '라인 그리기' 버튼 (직원 관리와 동일한 디자인) -->
+            <button onclick="toggleDrawingPipe()" id="drawPipeBtn" class="py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate transition-colors">
               라인 그리기
             </button>
             
-            <!-- 2. '도면 그리기' 버튼 (곡선인식 제거, 5mm직선/사선, 내부선 삭제 다각형 완성) -->
-            <button onclick="toggleDrawingPlan()" id="drawPlanBtn" class="py-1.5 px-1 border border-indigo-300 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 rounded font-semibold text-xs text-center truncate transition-colors">
+            <!-- 2. '도면 그리기' 버튼 (직원 관리와 동일한 디자인) -->
+            <button onclick="toggleDrawingPlan()" id="drawPlanBtn" class="py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate transition-colors">
               도면 그리기
             </button>
           </div>
 
           <div class="grid grid-cols-2 gap-1.5">
-            <!-- 3. 맵 편집 모드 토글 -->
-            <button onclick="toggleMapEditMode()" id="mapEditToggleBtn" class="py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-semibold text-xs text-center truncate">
+            <!-- 3. 맵 편집 모드 토글 (직원 관리와 동일한 디자인) -->
+            <button onclick="toggleMapEditMode()" id="mapEditToggleBtn" class="py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate transition-colors">
               맵 편집 모드
             </button>
 
-            <!-- 4. 관리자 전용: 직원/PIN 관리 -->
+            <!-- 4. 핀 추가 버튼 (소화전, 비상계단, 소화기) -->
+            <div class="relative">
+              <button onclick="togglePinAddMenu(event)" id="addPinBtn" class="w-full py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate transition-colors">
+                핀 추가
+              </button>
+              <div id="pinAddMenuDropdown" class="hidden absolute left-0 bottom-full mb-1 w-44 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-xl p-1.5 z-50 text-xs">
+                <div class="font-bold text-[10px] text-[var(--muted-foreground)] px-2 py-1 border-b border-[var(--border)] mb-1">소방/피난 시설 핀 선택</div>
+                <button onclick="setPinAddType('FIRE_HYDRANT')" class="w-full text-left px-2 py-1.5 rounded hover:bg-[var(--sidebar)] flex items-center justify-between">
+                  <span class="font-bold text-rose-600">소화전</span>
+                  <span class="text-[10px] text-[var(--muted-foreground)]">옥내소화전</span>
+                </button>
+                <button onclick="setPinAddType('FIRE_EXTINGUISHER')" class="w-full text-left px-2 py-1.5 rounded hover:bg-[var(--sidebar)] flex items-center justify-between">
+                  <span class="font-bold text-amber-600">소화기</span>
+                  <span class="text-[10px] text-[var(--muted-foreground)]">분말소화기</span>
+                </button>
+                <button onclick="setPinAddType('EMERGENCY_STAIRS')" class="w-full text-left px-2 py-1.5 rounded hover:bg-[var(--sidebar)] flex items-center justify-between">
+                  <span class="font-bold text-emerald-600">비상계단</span>
+                  <span class="text-[10px] text-[var(--muted-foreground)]">피난구</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5">
+            <!-- 5. 관리자 전용: 직원/PIN 관리 -->
             <button onclick="openStaffModal()" id="adminStaffBtn" class="py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate">
               직원 관리
+            </button>
+
+            <!-- 6. 소방/피난 핀 수량 통계 -->
+            <button onclick="openSafetyStatsModal()" id="safetyStatsBtn" class="py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate text-rose-600 dark:text-rose-400">
+              소방 수량 통계
             </button>
           </div>
 
@@ -385,6 +414,13 @@
           <div class="flex items-center gap-1.5 min-w-0">
             <span class="font-bold text-[var(--foreground)] text-[11px] sm:text-xs truncate shrink-0" id="cadStatusText">2F 평면도</span>
             
+            <!-- 소방 시설물 수량 통계 뱃지 (소화전, 소화기 층별 & 전체 실시간 확인) -->
+            <div onclick="openSafetyStatsModal()" id="pinStatsSummaryBadge" class="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-900 bg-rose-50/70 dark:bg-rose-950/40 text-[10px] sm:text-[11px] cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors shrink-0" title="소방 시설물(소화전, 소화기, 비상계단) 층별/전체 수량 통계 확인">
+              <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+              <span class="font-bold text-rose-700 dark:text-rose-300">소방핀:</span>
+              <span id="pinStatsSummaryText" class="font-medium text-[var(--foreground)] truncate">소화전: 2F 4개(전체 18) | 소화기: 2F 12개(전체 45)</span>
+            </div>
+
             <!-- 통합 실시간 검색창 -->
             <div class="relative flex items-center">
               <input id="quickSearchInput" type="text" placeholder="검색 (/)" oninput="handleQuickSearch(this.value)" class="w-16 sm:w-28 h-6 px-1.5 text-[10px] sm:text-[11px] rounded border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:border-blue-500 placeholder:text-[var(--muted-foreground)]" title="매장, 선로, 구역 검색 (단축키: /)"/>
@@ -869,6 +905,31 @@
             <input type="text" id="modalPipeLength" readonly class="w-full px-2.5 py-1.5 rounded border border-[var(--border)] bg-[var(--sidebar)] font-mono text-xs">
           </div>
         </div>
+
+        <!-- 수직 층간 연결 정보 ('~층~로 연결됨') -->
+        <div class="border-t border-[var(--border)] pt-2 space-y-1.5">
+          <label class="block text-[var(--muted-foreground)] font-semibold text-xs">수직 층간 연결 (위층/아래층 관로 연결)</label>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] text-[var(--muted-foreground)] mb-0.5">연결 대상 층</label>
+              <select id="modalPipeConnectedFloor" onchange="handleConnectedFloorChange(this.value)" class="w-full px-2 py-1.5 rounded border border-[var(--border)] bg-[var(--background)] text-xs">
+                <option value="">연결 없음 (단층)</option>
+                <option value="4F">4F</option>
+                <option value="3F">3F</option>
+                <option value="2F">2F</option>
+                <option value="1F">1F</option>
+                <option value="B1">B1</option>
+                <option value="B2">B2</option>
+                <option value="B3">B3</option>
+                <option value="ROOF">ROOF (옥상)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-[var(--muted-foreground)] mb-0.5">연결 안내 문구</label>
+              <input type="text" id="modalPipeConnectedNote" class="w-full px-2 py-1.5 rounded border border-[var(--border)] bg-[var(--background)] text-xs" placeholder="예: 3F 공조실로 연결됨">
+            </div>
+          </div>
+        </div>
       </div>
       <div class="flex items-center justify-between pt-2 border-t border-[var(--border)]">
         <button onclick="deleteTargetPipe()" id="deletePipeBtn" class="px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded border border-rose-200 font-semibold">
@@ -878,6 +939,52 @@
           <button onclick="cancelPipeDraw()" class="px-3 py-1.5 text-xs rounded border border-[var(--border)]">닫기</button>
           <button onclick="saveDrawnPipe()" class="px-3.5 py-1.5 text-xs rounded bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-bold">배관 저장</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 소방/피난 시설물(소화전, 소화기, 비상계단) 층별/전체 수량 통계 모달 -->
+  <div id="safetyStatsModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg w-full max-w-2xl p-4 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+          <h3 class="font-bold text-sm text-[var(--foreground)]">소방 & 피난 시설물 층별/전체 수량 통계</h3>
+        </div>
+        <button onclick="closeSafetyStatsModal()" class="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]">✕</button>
+      </div>
+
+      <!-- 층별 수량 요약 테이블 -->
+      <div class="space-y-1.5">
+        <div class="font-bold text-xs text-[var(--foreground)]">층별 소방 시설 현황표</div>
+        <div class="border border-[var(--border)] rounded-md overflow-hidden text-xs">
+          <table class="w-full text-center border-collapse">
+            <thead class="bg-[var(--sidebar)] text-[var(--muted-foreground)] text-[11px] border-b border-[var(--border)]">
+              <tr>
+                <th class="py-1.5 px-2 text-left">층</th>
+                <th class="py-1.5 px-2 text-rose-600 font-bold">소화전</th>
+                <th class="py-1.5 px-2 text-amber-600 font-bold">소화기</th>
+                <th class="py-1.5 px-2 text-emerald-600 font-bold">비상계단</th>
+                <th class="py-1.5 px-2 font-bold">소계</th>
+                <th class="py-1.5 px-2">도면 이동</th>
+              </tr>
+            </thead>
+            <tbody id="safetyStatsTableBody" class="divide-y divide-[var(--border)]"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 현재 층 핀 목록 및 관리 -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between">
+          <div class="font-bold text-xs text-[var(--foreground)]"><span id="safetyCurrentFloorTitle">2F</span> 등록 시설 핀 목록</div>
+          <span class="text-[10px] text-[var(--muted-foreground)]">핀 클릭 시 도면 위치로 포커스 이동</span>
+        </div>
+        <div id="safetyFloorPinsList" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar p-1"></div>
+      </div>
+
+      <div class="flex justify-end pt-2 border-t border-[var(--border)]">
+        <button onclick="closeSafetyStatsModal()" class="px-3.5 py-1.5 text-xs rounded border border-[var(--border)] hover:bg-[var(--sidebar)]">닫기</button>
       </div>
     </div>
   </div>
@@ -1881,8 +1988,8 @@
 
       if (btn) {
         btn.className = isDrawingPipeMode
-          ? 'py-1.5 px-1 bg-blue-600 text-white rounded font-bold text-xs text-center truncate shadow'
-          : 'py-1.5 px-1 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-semibold text-xs text-center truncate';
+          ? 'py-1.5 px-1 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-bold text-xs text-center truncate shadow transition-colors'
+          : 'py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate transition-colors';
         btn.innerText = isDrawingPipeMode ? '라인 그리기 종료' : '라인 그리기';
       }
 
@@ -1920,8 +2027,8 @@
 
       if (btn) {
         btn.className = isDrawingPlanMode
-          ? 'py-1.5 px-1 bg-indigo-600 text-white rounded font-bold text-xs text-center truncate shadow'
-          : 'py-1.5 px-1 border border-indigo-300 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 rounded font-semibold text-xs text-center truncate';
+          ? 'py-1.5 px-1 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-bold text-xs text-center truncate shadow transition-colors'
+          : 'py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate transition-colors';
         btn.innerText = isDrawingPlanMode ? '도면 그리기 종료' : '도면 그리기';
       }
 
@@ -2286,6 +2393,102 @@
     }
 
     // 라인 그리기 한 획 마침 (매장 내부 및 외벽 외부 클리핑, 방화/제연구획은 겹쳐 그리기 전체 보존)
+    // ==========================================
+    // 5-C. 외벽 선분 2mm 평행 이격 스냅 엔진
+    // - 라인 그리기 시 '외벽' 속성의 라인과 인접하거나 붙어서 그릴 경우
+    //   '외벽' 선과 2mm 간격(약 7.6px)으로 평행하게 보정
+    // - 방화구역(FIRE_ZONE), 제연구획(SMOKE_ZONE) 라인은 제외
+    // ==========================================
+    function snapLinePointsToWallParallel(pts, category) {
+      if (!pts || pts.length < 2) return pts;
+      // 방화구역, 제연구획 라인은 평행 스냅 제외
+      if (['FIRE_ZONE', 'SMOKE_ZONE'].includes(category)) return pts;
+
+      // 1. 현재 층 외벽 다각형 목록 추출
+      const userWalls = planObjectsData.filter(o => (o.floor === currentFloor || (!o.floor && currentFloor === '2F')) && o.type === 'WALL' && o.polygon && o.polygon.length >= 3);
+      const outerWallPolygons = userWalls.length > 0 
+        ? userWalls.map(w => w.polygon)
+        : [[{ x: 20, y: 20 }, { x: 920, y: 20 }, { x: 920, y: 580 }, { x: 20, y: 580 }]];
+
+      // 2. 외벽의 모든 변 선분 구성 (안쪽 법선 벡터 계산)
+      const wallEdges = [];
+      outerWallPolygons.forEach(poly => {
+        const cX = poly.reduce((s, p) => s + p.x, 0) / poly.length;
+        const cY = poly.reduce((s, p) => s + p.y, 0) / poly.length;
+
+        for (let i = 0; i < poly.length; i++) {
+          const w1 = poly[i];
+          const w2 = poly[(i + 1) % poly.length];
+          const len = Math.hypot(w2.x - w1.x, w2.y - w1.y);
+          if (len > 5) {
+            const dirX = (w2.x - w1.x) / len;
+            const dirY = (w2.y - w1.y) / len;
+
+            // 법선 벡터 (안쪽을 향하도록 판별)
+            let nX = -dirY;
+            let nY = dirX;
+            const midX = (w1.x + w2.x) / 2;
+            const midY = (w1.y + w2.y) / 2;
+            if (Math.hypot(midX + nX - cX, midY + nY - cY) > Math.hypot(midX - nX - cX, midY - nY - cY)) {
+              nX = -nX;
+              nY = -nY;
+            }
+            wallEdges.push({ w1, w2, len, dirX, dirY, nX, nY });
+          }
+        }
+      });
+
+      if (wallEdges.length === 0) return pts;
+
+      const OFFSET_2MM = 7.6; // 1mm ≈ 3.8px 기준 2mm = 약 7.6px
+      const MAX_SNAP_DIST = 26; // 인접 판정 임계거리 26px
+      const newPts = pts.map(p => ({ ...p }));
+
+      // 각 선분에 대해 외벽과 인접 & 평행성 검사
+      for (let i = 0; i < newPts.length - 1; i++) {
+        const p1 = newPts[i];
+        const p2 = newPts[i + 1];
+        const segLen = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        if (segLen < 6) continue;
+
+        const sDirX = (p2.x - p1.x) / segLen;
+        const sDirY = (p2.y - p1.y) / segLen;
+
+        let bestEdge = null;
+        let minEdgeDist = Infinity;
+
+        for (const edge of wallEdges) {
+          const dot = Math.abs(sDirX * edge.dirX + sDirY * edge.dirY);
+          if (dot >= 0.92) { // 22도 이내 거의 평행
+            const d1 = Math.abs((p1.x - edge.w1.x) * edge.dirY - (p1.y - edge.w1.y) * edge.dirX);
+            const d2 = Math.abs((p2.x - edge.w1.x) * edge.dirY - (p2.y - edge.w1.y) * edge.dirX);
+            const avgDist = (d1 + d2) / 2;
+
+            if (avgDist < MAX_SNAP_DIST && avgDist < minEdgeDist) {
+              minEdgeDist = avgDist;
+              bestEdge = edge;
+            }
+          }
+        }
+
+        // 인접한 평행 외벽 변이 발견된 경우 2mm 안쪽 평행선으로 스냅
+        if (bestEdge) {
+          const refX = bestEdge.w1.x + bestEdge.nX * OFFSET_2MM;
+          const refY = bestEdge.w1.y + bestEdge.nY * OFFSET_2MM;
+
+          const proj1 = (p1.x - refX) * bestEdge.dirX + (p1.y - refY) * bestEdge.dirY;
+          const proj2 = (p2.x - refX) * bestEdge.dirX + (p2.y - refY) * bestEdge.dirY;
+
+          newPts[i].x = Math.round(refX + proj1 * bestEdge.dirX);
+          newPts[i].y = Math.round(refY + proj1 * bestEdge.dirY);
+          newPts[i + 1].x = Math.round(refX + proj2 * bestEdge.dirX);
+          newPts[i + 1].y = Math.round(refY + proj2 * bestEdge.dirY);
+        }
+      }
+
+      return newPts;
+    }
+
     function finishPipeStroke() {
       if (!currentPipePoints || currentPipePoints.length < 2) return;
       if (typeof recordHistoryState === 'function') recordHistoryState();
@@ -2293,8 +2496,11 @@
       const category = currentActiveCategory;
       const isFireOrSmoke = ['FIRE_ZONE', 'SMOKE_ZONE'].includes(category);
 
+      // 외벽 인접 2mm 평행 이격 스냅 적용 (방화/제연구획 제외)
+      const snappedPoints = snapLinePointsToWallParallel(currentPipePoints, category);
+
       // 매장 내부 선분 및 외벽 외부 선분 클리핑
-      const validChains = clipPipePointsAgainstWallsAndStores(currentPipePoints, category);
+      const validChains = clipPipePointsAgainstWallsAndStores(snappedPoints, category);
       currentPipePoints = [];
 
       if (!validChains || validChains.length === 0) {
@@ -2825,11 +3031,7 @@
       for (let x = 0; x <= 1000; x += 20) {
         const isMajor = x % 100 === 0;
         const h = isMajor ? 12 : (x % 50 === 0 ? 8 : 4);
-        const m = Math.round(x * 0.12);
         topHtml += `<line x1="${x}" y1="0" x2="${x}" y2="${h}" stroke="var(--muted-foreground)" stroke-width="1"/>`;
-        if (isMajor) {
-          topHtml += `<text x="${x + 2}" y="11" font-size="8" font-family="monospace" fill="var(--muted-foreground)">${m}m</text>`;
-        }
       }
       topSvg.innerHTML = topHtml;
 
@@ -2837,11 +3039,7 @@
       for (let y = 0; y <= 650; y += 20) {
         const isMajor = y % 100 === 0;
         const w = isMajor ? 12 : (y % 50 === 0 ? 8 : 4);
-        const m = Math.round(y * 0.12);
         leftHtml += `<line x1="0" y1="${y}" x2="${w}" y2="${y}" stroke="var(--muted-foreground)" stroke-width="1"/>`;
-        if (isMajor) {
-          leftHtml += `<text x="2" y="${y + 9}" font-size="8" font-family="monospace" fill="var(--muted-foreground)">${m}m</text>`;
-        }
       }
       leftSvg.innerHTML = leftHtml;
     }
@@ -3245,6 +3443,7 @@
       renderFloorButtons();
       renderPipeLabels();
       updateSelectionVisuals();
+      if (typeof updatePinStatsSummary === 'function') updatePinStatsSummary();
     }
 
     // 외벽 & 방화구역/제연구역 렌더링 (외벽 속성 라인은 색 반전 시 함께 반전)
@@ -3352,8 +3551,37 @@
         else if (isWarning) cls += ' pipe-warning';
         if (isClosed) cls += ' pipe-closed';
 
+        let riserSvg = '';
+        if (p.connectedFloor || p.connectedNote) {
+          const rawPts = (p.points || '').trim().split(/\s+/).map(pt => {
+            const [x, y] = pt.split(',').map(Number);
+            return { x, y };
+          });
+          if (rawPts.length > 0) {
+            const endPt = rawPts[rawPts.length - 1];
+            const noteText = p.connectedNote || (p.connectedFloor ? `${p.connectedFloor}로 연결됨` : '');
+            if (noteText) {
+              const badgeW = Math.max(76, noteText.length * 9.2 + 16);
+              riserSvg = `
+                <g class="riser-indicator cursor-pointer" transform="translate(${endPt.x}, ${endPt.y})" onclick="openPipeRegisterModal('${p.id}')">
+                  <circle r="7.5" fill="#4f46e5" stroke="#ffffff" stroke-width="1.8"/>
+                  <circle r="3" fill="#ffffff"/>
+                  <path d="M-4.5 0 L4.5 0 M0 -4.5 L0 4.5" stroke="#ffffff" stroke-width="1.2"/>
+                  <g transform="translate(10, -10)">
+                    <rect width="${badgeW}" height="20" rx="4" fill="rgba(15,23,42,0.9)" stroke="#6366f1" stroke-width="1.2"/>
+                    <text x="8" y="13.5" font-size="9.5" font-weight="bold" fill="#ffffff" font-family="sans-serif">${noteText}</text>
+                  </g>
+                </g>
+              `;
+            }
+          }
+        }
+
         return `
-          <polyline id="${p.id}" class="${cls}" data-shop="${p.shop}" data-category="${p.category}" points="${p.points}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-opacity="${strokeOpacity}" stroke-dasharray="${strokeDash}" fill="none" onclick="handlePipeClick(event, '${p.id}')"/>
+          <g>
+            <polyline id="${p.id}" class="${cls}" data-shop="${p.shop}" data-category="${p.category}" points="${p.points}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-opacity="${strokeOpacity}" stroke-dasharray="${strokeDash}" fill="none" onclick="handlePipeClick(event, '${p.id}')"/>
+            ${riserSvg}
+          </g>
         `;
       }).join('');
     }
@@ -3393,6 +3621,7 @@
             <div class="min-w-0 pr-2">
               <div class="font-bold text-[var(--foreground)] truncate">${p.name} ${p.isDraft ? '<span class="text-[9px] text-amber-500 font-normal">[미등록]</span>' : ''}</div>
               <div class="text-[10px] text-[var(--muted-foreground)] truncate">인입: <span class="font-bold underline">${p.shop}</span> | ${p.spec} (${p.length})</div>
+              ${(p.connectedNote || p.connectedFloor) ? `<div class="text-[9px] text-indigo-500 font-semibold truncate mt-0.5">🔗 ${p.connectedNote || (p.connectedFloor + '로 연결됨')}</div>` : ''}
             </div>
             <span class="px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0" style="background-color: ${color}20; color: ${color};">${isDuct ? '덕트' : p.category}</span>
           </div>
@@ -3400,22 +3629,223 @@
       }).join('');
     }
 
+    // ==========================================
+    // 핀(시설물) 추가 & 소화전/소화기/비상계단 수량 통계 엔진
+    // ==========================================
+    let isAddingPinMode = false;
+    let currentPinAddType = 'FIRE_HYDRANT';
+
+    const PIN_META = {
+      'FIRE_HYDRANT': { name: '소화전', fullName: '옥내소화전', color: '#dc2626', iconText: 'H', desc: '소방 호스 및 밸브' },
+      'FIRE_EXTINGUISHER': { name: '소화기', fullName: '분말소화기', color: '#ea580c', iconText: 'E', desc: 'ABC 축압식 분말소화기' },
+      'EMERGENCY_STAIRS': { name: '비상계단', fullName: '피난계단/비상구', color: '#16a34a', iconText: 'S', desc: '화재 피난 비상구' }
+    };
+
+    function togglePinAddMenu(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById('pinAddMenuDropdown');
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    function setPinAddType(type) {
+      if (currentUser.role === 'guest') {
+        alert('게스트는 핀 추가 권한이 없습니다.');
+        return;
+      }
+      currentPinAddType = type;
+      isAddingPinMode = true;
+      const menu = document.getElementById('pinAddMenuDropdown');
+      if (menu) menu.classList.add('hidden');
+      const btn = document.getElementById('addPinBtn');
+      if (btn) {
+        btn.className = 'w-full py-1.5 px-1 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-bold text-xs text-center truncate shadow transition-colors';
+        btn.innerText = `[+] ${PIN_META[type].name} 배치중`;
+      }
+      showToast(`도면 원하는 위치를 클릭하여 ${PIN_META[type].fullName} 핀을 배치하세요.`, 600);
+    }
+
+    function cancelPinAddMode() {
+      isAddingPinMode = false;
+      const btn = document.getElementById('addPinBtn');
+      if (btn) {
+        btn.className = 'w-full py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate transition-colors';
+        btn.innerText = '핀 추가';
+      }
+    }
+
+    function createFacilityPinAt(x, y, pinType) {
+      const meta = PIN_META[pinType] || PIN_META['FIRE_HYDRANT'];
+      const sameTypeCount = facilitiesData.filter(f => (f.floor === currentFloor || (!f.floor && currentFloor === '2F')) && (f.pinType === pinType || f.category === pinType)).length + 1;
+      const newPin = {
+        id: 'PIN-' + Date.now(),
+        name: `${currentFloor} ${meta.name} #${sameTypeCount}`,
+        shop: '공용 구역',
+        category: (pinType === 'EMERGENCY_STAIRS') ? 'SAFETY' : 'FIRE',
+        pinType: pinType,
+        floor: currentFloor,
+        x: Math.round(x),
+        y: Math.round(y)
+      };
+
+      facilitiesData.push(newPin);
+      saveLocalCache();
+      renderFacilities();
+      updatePinStatsSummary();
+      showToast(`[${currentFloor}] ${meta.fullName} 핀이 배치되었습니다.`, 500);
+    }
+
+    function deleteFacilityPin(pinId) {
+      if (currentUser.role === 'guest') return;
+      facilitiesData = facilitiesData.filter(f => f.id !== pinId);
+      saveLocalCache();
+      renderFacilities();
+      updatePinStatsSummary();
+      renderSafetyStatsModalContent();
+      showToast('시설물 핀이 삭제되었습니다.', 500);
+    }
+
+    function handlePinClick(e, pinId) {
+      if (e) e.stopPropagation();
+      const pin = facilitiesData.find(f => f.id === pinId);
+      if (!pin) return;
+
+      if (isMapEditMode) {
+        if (typeof multiSelectedMap !== 'undefined') {
+          multiSelectedMap.clear();
+          multiSelectedMap.set(`pin:${pinId}`, { type: 'pin', id: pinId, item: pin });
+          updateSelectionVisuals();
+        }
+        showToast(`[선택됨] ${pin.name} (Delete키로 삭제 가능)`, 500);
+      } else {
+        const meta = PIN_META[pin.pinType || pin.category] || { fullName: pin.name, desc: '' };
+        showToast(`[${pin.floor}] ${pin.name} (${meta.desc})`, 700);
+      }
+    }
+
     function renderFacilities() {
       const layer = document.getElementById('pinLayer');
       if (!layer) return;
       const floorFacs = facilitiesData.filter(f => {
         const matchFloor = f.floor === currentFloor || (!f.floor && currentFloor === '2F');
-        return matchFloor && matchesGroupFilter(f.category);
+        return matchFloor && (matchesGroupFilter(f.category) || matchesGroupFilter('FIRE'));
       });
+
       layer.innerHTML = floorFacs.map(f => {
-        const color = f.category === 'FIRE' ? '#dc2626' : f.category === 'ELEC' ? '#ea580c' : '#16a34a';
+        const type = f.pinType || f.category;
+        const meta = PIN_META[type] || {
+          name: f.name || '시설물',
+          color: (f.category === 'FIRE' ? '#dc2626' : f.category === 'ELEC' ? '#ea580c' : '#16a34a'),
+          iconText: (f.category || 'F')[0]
+        };
+
         return `
-          <g class="fac-pin" data-shop="${f.shop}" data-category="${f.category}" transform="translate(${f.x}, ${f.y})" onclick="selectStore('${f.shop}')">
-            <circle r="7" fill="${color}" stroke="#ffffff" stroke-width="1.5"/>
-            <text y="3.5" text-anchor="middle" font-size="7" fill="#ffffff" font-weight="bold">${(f.category || 'F')[0]}</text>
+          <g class="fac-pin cursor-pointer group" data-id="${f.id}" data-type="${type}" transform="translate(${f.x}, ${f.y})" onclick="handlePinClick(event, '${f.id}')">
+            <circle r="8.5" fill="${meta.color}" stroke="#ffffff" stroke-width="1.8" class="transition-transform group-hover:scale-125 shadow"/>
+            <text y="3.2" text-anchor="middle" font-size="8" fill="#ffffff" font-weight="900" font-family="sans-serif">${meta.iconText}</text>
+            <title>${f.name}</title>
           </g>
         `;
       }).join('');
+    }
+
+    function updatePinStatsSummary() {
+      // 소화전 갯수: 현재 층 및 전체
+      const curHydrants = facilitiesData.filter(f => (f.floor === currentFloor || (!f.floor && currentFloor === '2F')) && (f.pinType === 'FIRE_HYDRANT' || f.category === 'FIRE_HYDRANT' || ((f.name || '').includes('소화전')))).length;
+      const totHydrants = facilitiesData.filter(f => f.pinType === 'FIRE_HYDRANT' || f.category === 'FIRE_HYDRANT' || ((f.name || '').includes('소화전'))).length;
+
+      // 소화기 갯수: 현재 층 및 전체
+      const curExtinguishers = facilitiesData.filter(f => (f.floor === currentFloor || (!f.floor && currentFloor === '2F')) && (f.pinType === 'FIRE_EXTINGUISHER' || f.category === 'FIRE_EXTINGUISHER' || ((f.name || '').includes('소화기')))).length;
+      const totExtinguishers = facilitiesData.filter(f => f.pinType === 'FIRE_EXTINGUISHER' || f.category === 'FIRE_EXTINGUISHER' || ((f.name || '').includes('소화기'))).length;
+
+      const txt = document.getElementById('pinStatsSummaryText');
+      if (txt) {
+        txt.innerText = `소화전: ${currentFloor} ${curHydrants}개(전체 ${totHydrants}) | 소화기: ${currentFloor} ${curExtinguishers}개(전체 ${totExtinguishers})`;
+      }
+    }
+
+    function openSafetyStatsModal() {
+      const modal = document.getElementById('safetyStatsModal');
+      if (!modal) return;
+      renderSafetyStatsModalContent();
+      modal.classList.remove('hidden');
+    }
+
+    function closeSafetyStatsModal() {
+      const modal = document.getElementById('safetyStatsModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function renderSafetyStatsModalContent() {
+      const tbody = document.getElementById('safetyStatsTableBody');
+      const list = document.getElementById('safetyFloorPinsList');
+      const title = document.getElementById('safetyCurrentFloorTitle');
+      if (title) title.innerText = currentFloor;
+
+      if (tbody) {
+        let totalH = 0, totalE = 0, totalS = 0;
+        const rows = floorList.map(fl => {
+          const h = facilitiesData.filter(f => (f.floor === fl || (!f.floor && fl === '2F')) && (f.pinType === 'FIRE_HYDRANT' || f.category === 'FIRE_HYDRANT' || ((f.name || '').includes('소화전')))).length;
+          const e = facilitiesData.filter(f => (f.floor === fl || (!f.floor && fl === '2F')) && (f.pinType === 'FIRE_EXTINGUISHER' || f.category === 'FIRE_EXTINGUISHER' || ((f.name || '').includes('소화기')))).length;
+          const s = facilitiesData.filter(f => (f.floor === fl || (!f.floor && fl === '2F')) && (f.pinType === 'EMERGENCY_STAIRS' || f.category === 'EMERGENCY_STAIRS' || ((f.name || '').includes('계단')))).length;
+          const sub = h + e + s;
+          totalH += h; totalE += e; totalS += s;
+          const isCur = fl === currentFloor;
+          return `
+            <tr class="${isCur ? 'bg-blue-50/70 dark:bg-blue-950/40 font-bold' : 'hover:bg-[var(--sidebar)]'}">
+              <td class="py-1.5 px-2 text-left font-mono">${fl} ${isCur ? '<span class="text-[9px] text-blue-600">(현재)</span>' : ''}</td>
+              <td class="py-1.5 px-2 text-rose-600 font-mono">${h}</td>
+              <td class="py-1.5 px-2 text-amber-600 font-mono">${e}</td>
+              <td class="py-1.5 px-2 text-emerald-600 font-mono">${s}</td>
+              <td class="py-1.5 px-2 font-mono font-bold">${sub}</td>
+              <td class="py-1.5 px-2">
+                <button onclick="changeFloor('${fl}'); closeSafetyStatsModal();" class="px-2 py-0.5 rounded border border-[var(--border)] text-[10px] hover:bg-[var(--card)]">이동</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        const totalRow = `
+          <tr class="bg-[var(--sidebar)] font-bold border-t-2 border-[var(--border)] text-[11px]">
+            <td class="py-2 px-2 text-left">전체 합계</td>
+            <td class="py-2 px-2 text-rose-600 font-mono">${totalH}개</td>
+            <td class="py-2 px-2 text-amber-600 font-mono">${totalE}개</td>
+            <td class="py-2 px-2 text-emerald-600 font-mono">${totalS}개</td>
+            <td class="py-2 px-2 font-mono text-[var(--foreground)]">${totalH + totalE + totalS}개</td>
+            <td class="py-2 px-2">-</td>
+          </tr>
+        `;
+        tbody.innerHTML = rows + totalRow;
+      }
+
+      if (list) {
+        const curPins = facilitiesData.filter(f => f.floor === currentFloor || (!f.floor && currentFloor === '2F'));
+        if (curPins.length === 0) {
+          list.innerHTML = `<div class="col-span-2 text-center py-4 text-xs text-[var(--muted-foreground)]">현재 층(${currentFloor})에 등록된 소방/피난 시설 핀이 없습니다. 좌측 '핀 추가'를 이용해 배치하세요.</div>`;
+        } else {
+          list.innerHTML = curPins.map(p => {
+            const meta = PIN_META[p.pinType || p.category] || { name: '시설물', color: '#0284c7' };
+            return `
+              <div class="p-2 rounded border border-[var(--border)] bg-[var(--card)] flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2 min-w-0 pr-1">
+                  <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-black shrink-0" style="background-color:${meta.color};">${meta.iconText || 'F'}</span>
+                  <div class="truncate">
+                    <div class="font-bold text-[var(--foreground)] truncate">${p.name}</div>
+                    <div class="text-[10px] text-[var(--muted-foreground)] font-mono">X:${p.x}, Y:${p.y}</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button onclick="focusOnPin(${p.x}, ${p.y}); closeSafetyStatsModal();" class="px-1.5 py-0.5 rounded border border-[var(--border)] text-[10px] hover:bg-[var(--sidebar)]">보기</button>
+                  <button onclick="deleteFacilityPin('${p.id}')" class="px-1.5 py-0.5 rounded border border-rose-200 text-rose-600 text-[10px] hover:bg-rose-50 dark:hover:bg-rose-950/40">삭제</button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    function focusOnPin(x, y) {
+      showToast(`핀 위치 (X:${x}, Y:${y})로 포커스되었습니다.`, 500);
     }
 
     function renderFloorButtons() {
@@ -3430,6 +3860,7 @@
 
     function changeFloor(targetFloor) {
       currentFloor = targetFloor;
+      if (typeof updatePinStatsSummary === 'function') updatePinStatsSummary();
       const meta = FLOOR_METAS[targetFloor] || { name: targetFloor, title: `${targetFloor} 평면도 관제 화면`, coreTop: 'EV / 코어', coreBottom: '기계실 / 방재실' };
       const floorBadge = document.getElementById('headerFloorBadge');
       const floorLabel = document.getElementById('currentFloorLabel');
@@ -3463,8 +3894,8 @@
 
       if (btn) {
         btn.className = isMapEditMode
-          ? 'py-1.5 px-1 bg-orange-600 text-white rounded font-bold text-xs text-center truncate'
-          : 'py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-semibold text-xs text-center truncate';
+          ? 'py-1.5 px-1 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded font-bold text-xs text-center truncate shadow transition-colors'
+          : 'py-1.5 px-1 border border-[var(--border)] hover:bg-[var(--sidebar)] rounded font-medium text-xs text-center truncate transition-colors';
         btn.innerText = isMapEditMode ? '맵 편집 종료' : '맵 편집 모드';
       }
       if (badge && badgeText) {
@@ -3710,6 +4141,10 @@
         showToast('게스트는 삭제 권한이 없습니다.', 500);
         return;
       }
+      // [편집 상태 방지] 편집 모드가 아닐 때 삭제 차단
+      if (!isMapEditMode && !isDrawingPipeMode && !isDrawingPlanMode) {
+        return;
+      }
       if (typeof recordHistoryState === 'function') recordHistoryState();
 
       // 1. 다중/단일 선택된 개체가 있는 경우 확인 팝업 없이 즉시 일괄 삭제
@@ -3877,12 +4312,28 @@
       vp.addEventListener('mousedown', (e) => {
         if (isSpacePressed || isTransforming) return;
 
+        // 핀 추가 모드 처리
+        if (isAddingPinMode) {
+          const pt = getSvgPt(e.clientX, e.clientY);
+          createFacilityPinAt(pt.x, pt.y, currentPinAddType);
+          return;
+        }
+
+        // [핵심] 편집 모드가 아닌 상태에서 편집되는 상태 전면 방지
+        if (!isMapEditMode) {
+          if (multiSelectedMap && multiSelectedMap.size > 0) {
+            clearSelection();
+          }
+          return;
+        }
+
         const shopEl = e.target.closest('.shop-box');
         const pipeEl = e.target.closest('.pipe-path');
         const wallEl = e.target.closest('.cad-outer-wall');
+        const pinEl = e.target.closest('.fac-pin');
 
         // A. 빈 배경 클릭 시: 영역(Box) 드래그 선택 시작
-        if (!shopEl && !pipeEl && !wallEl) {
+        if (!shopEl && !pipeEl && !wallEl && !pinEl) {
           if (isMapEditMode || e.shiftKey) {
             isBoxSelecting = true;
             boxSelectStartPt = getSvgPt(e.clientX, e.clientY);
@@ -4671,9 +5122,45 @@
       ];
 
       facilitiesData = [
-        { id: 'F-101', name: '샤넬 옥내소화전 2-1', shop: '샤넬', category: 'FIRE', floor: '2F', x: 50, y: 50 },
-        { id: 'F-102', name: '샤넬 조명 분전반 LP-2A', shop: '샤넬', category: 'ELEC', floor: '2F', x: 170, y: 50 },
-        { id: 'F-103', name: '2F 알람벨브 1차측 밸브', shop: '2F 알람벨브실', category: 'FIRE', floor: '2F', x: 220, y: 50 }
+        // 2F 소방/피난 시설 핀
+        { id: 'F-101', name: '2F 옥내소화전 #1', shop: '공용 복도', category: 'FIRE', pinType: 'FIRE_HYDRANT', floor: '2F', x: 60, y: 60 },
+        { id: 'F-102', name: '2F 옥내소화전 #2', shop: '공용 복도', category: 'FIRE', pinType: 'FIRE_HYDRANT', floor: '2F', x: 880, y: 60 },
+        { id: 'F-103', name: '2F 옥내소화전 #3', shop: '공용 복도', category: 'FIRE', pinType: 'FIRE_HYDRANT', floor: '2F', x: 470, y: 540 },
+        { id: 'F-104', name: '2F 분말소화기 #1', shop: '샤넬 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 140, y: 150 },
+        { id: 'F-105', name: '2F 분말소화기 #2', shop: '에르메스 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 340, y: 150 },
+        { id: 'F-106', name: '2F 분말소화기 #3', shop: '루이비통 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 600, y: 150 },
+        { id: 'F-107', name: '2F 분말소화기 #4', shop: '디올 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 800, y: 150 },
+        { id: 'F-108', name: '2F 분말소화기 #5', shop: '구찌 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 140, y: 450 },
+        { id: 'F-109', name: '2F 분말소화기 #6', shop: '프라다 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 340, y: 450 },
+        { id: 'F-110', name: '2F 분말소화기 #7', shop: '생로랑 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 600, y: 450 },
+        { id: 'F-111', name: '2F 분말소화기 #8', shop: '까르띠에 매장', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '2F', x: 800, y: 450 },
+        { id: 'F-112', name: '2F 비상계단 #1 (동측 피난구)', shop: '비상계단실', category: 'SAFETY', pinType: 'EMERGENCY_STAIRS', floor: '2F', x: 900, y: 300 },
+        { id: 'F-113', name: '2F 비상계단 #2 (서측 피난구)', shop: '비상계단실', category: 'SAFETY', pinType: 'EMERGENCY_STAIRS', floor: '2F', x: 40, y: 300 },
+
+        // 1F 소방/피난 시설 핀
+        { id: 'F-201', name: '1F 옥내소화전 #1', shop: '공용 로비', category: 'FIRE', pinType: 'FIRE_HYDRANT', floor: '1F', x: 60, y: 60 },
+        { id: 'F-202', name: '1F 옥내소화전 #2', shop: '공용 로비', category: 'FIRE', pinType: 'FIRE_HYDRANT', floor: '1F', x: 880, y: 60 },
+        { id: 'F-203', name: '1F 옥내소화전 #3', shop: '공용 로비', category: 'FIRE', pinType: 'FIRE_HYDRANT', floor: '1F', x: 470, y: 540 },
+        { id: 'F-204', name: '1F 분말소화기 #1', shop: '1F 안내데스크', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '1F', x: 200, y: 200 },
+        { id: 'F-205', name: '1F 분말소화기 #2', shop: '1F 주출입구', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '1F', x: 470, y: 100 },
+        { id: 'F-206', name: '1F 분말소화기 #3', shop: '1F 엘리베이터홀', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '1F', x: 750, y: 200 },
+        { id: 'F-207', name: '1F 분말소화기 #4', shop: '1F 후문홀', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '1F', x: 470, y: 480 },
+        { id: 'F-208', name: '1F 비상계단 #1', shop: '비상계단실', category: 'SAFETY', pinType: 'EMERGENCY_STAIRS', floor: '1F', x: 900, y: 300 },
+        { id: 'F-209', name: '1F 비상계단 #2', shop: '비상계단실', category: 'SAFETY', pinType: 'EMERGENCY_STAIRS', floor: '1F', x: 40, y: 300 },
+
+        // 3F 소방/피난 시설 핀
+        { id: 'F-301', name: '3F 옥내소화전 #1', shop: '3F 공용복도', category: 'FIRE', pinType: 'FIRE_HYDRANT', floor: '3F', x: 60, y: 60 },
+        { id: 'F-302', name: '3F 옥내소화전 #2', shop: '3F 공용복도', category: 'FIRE', pinType: 'FIRE_HYDRANT', floor: '3F', x: 880, y: 60 },
+        { id: 'F-303', name: '3F 분말소화기 #1', shop: '3F 라운지', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '3F', x: 200, y: 200 },
+        { id: 'F-304', name: '3F 분말소화기 #2', shop: '3F 복도', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: '3F', x: 750, y: 200 },
+        { id: 'F-305', name: '3F 비상계단 #1', shop: '비상계단실', category: 'SAFETY', pinType: 'EMERGENCY_STAIRS', floor: '3F', x: 900, y: 300 },
+
+        // B1F 소방/피난 시설 핀
+        { id: 'F-401', name: 'B1 옥내소화전 #1', shop: 'B1 하역장', category: 'FIRE', pinType: 'FIRE_HYDRANT', floor: 'B1', x: 60, y: 60 },
+        { id: 'F-402', name: 'B1 옥내소화전 #2', shop: 'B1 기계실복도', category: 'FIRE', pinType: 'FIRE_HYDRANT', floor: 'B1', x: 880, y: 60 },
+        { id: 'F-403', name: 'B1 분말소화기 #1', shop: 'B1 방재실', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: 'B1', x: 250, y: 250 },
+        { id: 'F-404', name: 'B1 분말소화기 #2', shop: 'B1 기계실', category: 'FIRE', pinType: 'FIRE_EXTINGUISHER', floor: 'B1', x: 700, y: 250 },
+        { id: 'F-405', name: 'B1 비상계단 #1', shop: '비상계단실', category: 'SAFETY', pinType: 'EMERGENCY_STAIRS', floor: 'B1', x: 900, y: 300 }
       ];
     }
 
